@@ -1,0 +1,100 @@
+= Autobuild
+
+Autobuild, a.k.a. Autobuilder is a family of tools for generating PNC build configs for projects with complex transitive dependencies:
+
+* https://github.com/quarkusio/quarkus-platform-bom-generator/tree/main/domino[Domino] - a library implementing the core functionality
+* `deps-to-rebuild` https://github.com/quarkusio/quarkus-platform-bom-generator/tree/main/domino#maven-plugin[mojo] of `io.quarkus:quarkus-platform-bom-maven-plugin` - wraps Domino
+* `dependency-generator` https://project-ncl.github.io/bacon/guide/experimental.html[experimental subcommand] of `bacon` - also wraps Domino
+
+As of writing this, the most common practice within Fuse team was to use the last option.
+However, the Domino being heavily developed, it was necessary to build `bacon` from code to get the functionality advertised
+on its https://project-ncl.github.io/bacon/guide/experimental.html[experimental] page.
+
+== Basic workflow
+
+As an introductory example, let's think of a situation when `woodstox-core` was upgraded in `quarkus-cxf` 1.5.14 in upstream
+and we want to make sure that that version and its transitive dependencies are available in PNC.
+
+We will generate the build configs based on `quarkus-cxf-bom`, because we know it manages all necessary bits.
+It is also substantially smaller than `camel-quarkus-bom` so there is less potential for issues.
+
+Here is how it can be done:
+
+1. Create a new Autobuild config file for `dependency-generator`:
++
+.woodstox-core-autobuilder.yaml
+[source,yaml]
+----
+dependencyResolutionConfig:
+    analyzeBOM: io.quarkiverse.cxf:quarkus-cxf-bom:1.5.14
+    includeOptionalDependencies: true
+    includeArtifacts:
+        - com.fasterxml.woodstox:woodstox-core:*
+    recipeRepos:
+        - https://github.com/redhat-appstudio/jvm-build-data
+        - https://github.com/jboss-fuse/camel-spring-boot-depstobuild
+
+buildConfigGeneratorConfig:
+    defaultValues:
+        environmentName: "OpenJDK 11.0; Mvn 3.5.4"
+    failGeneratedBuildScript: false
+    scmReplaceWithPlaceholder:
+        - "forge.fusesource.com/mvnplugins.git"
+        - "google-maven-repository.googlecode.com/svn"
+        - "svn.apache.org"
+        - "github.com/sonatype/jvnet-parent"
+        - "code.google.com/p"
+
+    scmPattern:
+        "git@github.com:": "https://github.com/"
+    scmMapping:
+        "github.com/sonatype/jvnet-parent": "https://github.com/sonatype/oss-parents"
+
+    pigTemplate:
+        product:
+            name: Camel Extensions for Quarkus Third Party Components
+            abbreviation: quarkus-cxf-third-party
+            stage: GA
+            issueTrackerUrl: https://issues.redhat.com/projects/CEQ
+        version: 2.13.3
+        milestone: CR2
+        group: CXF Extensions for Quarkus Third Party Components
+        builds:
+            -
+        flow:
+            licensesGeneration:
+                strategy: IGNORE
+            repositoryGeneration:
+                strategy: IGNORE
+            javadocGeneration:
+                strategy: IGNORE
+            sourcesGeneration:
+                strategy: IGNORE
+        outputPrefixes:
+            releaseFile: ab-example
+            releaseDir: ab-example
+        addons:
+            notYetAlignedFromDependencyTree:
+----
++
+2. Run the `dependency-generator`:
++
+[source,shell]
+----
+mkdir woodstox-core
+bacon experimental dependency-generator generate woodstox-core-autobuilder.yaml > woodstox-core/build-config.yaml
+----
++
+3. Review the generated file `woodstox-core/build-config.yaml` and correct any apparent mistakes if needed.
+4. Run the build in PNC:
++
+[source,shell]
+----
+bacon pig run "$(pwd)/woodstox-core" --skipJavadoc
+----
++
+5. Watch the progress in the console or in PNC UI.
+
+== See also
+
+* https://github.com/jboss-fuse/camel-spring-boot-depstobuild/tree/main/bacon[Tom's Autobuild files] for Camel and CSB and the README.

@@ -1,0 +1,140 @@
+= Maven repositories
+
+To build midstream and product branches of Camel, CEQ and RHBQ, the following `settings.xml` setup is recommended:
+
+[source,xml]
+----
+<?xml version="1.0"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                              http://maven.apache.org/xsd/settings-1.0.0.xsd">
+    <profiles>
+
+        <profile>
+            <id>prod</id><!-- activate by passing -Pprod on the CLI -->
+            <properties>
+                <buildMetaData.skip>true</buildMetaData.skip>
+            </properties>
+            <repositories>
+                <repository>
+                    <id>indy</id>
+                    <url>https://indy.psi.redhat.com/api/content/maven/group/static/</url>
+                    <name>Indy</name>
+                    <snapshots>
+                        <enabled>false</enabled>
+                        <updatePolicy>never</updatePolicy>
+                        <checksumPolicy>warn</checksumPolicy>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                        <updatePolicy>never</updatePolicy>
+                        <checksumPolicy>warn</checksumPolicy>
+                    </releases>
+                </repository>
+                <repository>
+                    <id>central</id>
+                    <name>Central</name>
+                    <url>https://repo.maven.apache.org/maven2</url>
+                    <snapshots>
+                        <enabled>false</enabled>
+                        <updatePolicy>never</updatePolicy>
+                        <checksumPolicy>warn</checksumPolicy>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                        <updatePolicy>never</updatePolicy>
+                        <checksumPolicy>warn</checksumPolicy>
+                    </releases>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>indy</id>
+                    <url>https://indy.psi.redhat.com/api/content/maven/group/static/</url>
+                    <name>Indy</name>
+                    <snapshots>
+                        <enabled>false</enabled>
+                        <updatePolicy>never</updatePolicy>
+                        <checksumPolicy>warn</checksumPolicy>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                        <updatePolicy>never</updatePolicy>
+                        <checksumPolicy>warn</checksumPolicy>
+                    </releases>
+                </pluginRepository>
+                <pluginRepository>
+                    <id>central</id>
+                    <name>Central</name>
+                    <url>https://repo.maven.apache.org/maven2</url>
+                    <snapshots>
+                        <enabled>false</enabled>
+                        <updatePolicy>never</updatePolicy>
+                        <checksumPolicy>warn</checksumPolicy>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                        <updatePolicy>never</updatePolicy>
+                        <checksumPolicy>warn</checksumPolicy>
+                    </releases>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+    </profiles>
+</settings>
+----
+
+
+Having the above in place, you can activate the `prod` profile by passing `-Pprod` on the command line:
+
+[source,shell]
+----
+$ mvn clean install -Dquickly -Pprod
+----
+
+== Indy SSL certificate
+
+In case you see SSL issues like
+
+[source,shell]
+----
+PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+----
+
+or similar, you need to make your Java installation trust the certificate authority (CA) used to sign Indy's SSL certificate.
+
+There are several ways to do it, here is one:
+
+1. Install the latest version of `redhat-internal-cert-install` RPM from http://hdn.corp.redhat.com/rhel7-csb-stage/RPMS/noarch/
+   You need it to connect to https://source.redhat.com/personal_blogs/setting_up_vpnldapkerberos_sso_on_a_fresh_fedora_33_install[Red Hat VPN] anyway.
+   It is quite likely, that you already have it, however, updating to the newest version cannot harm.
+2. Run `sudo update-ca-trust`.
+   Perhaps the above RPM runs it as well.
+   Running it once again manually wont harm.
+   This will update the Fedora system-wide trust store `/etc/pki/ca-trust/extracted/java/cacerts` in Java format
+3. Make your Java installation aware the above truststore, e.g.:
++
+[source,shell]
+----
+$ echo $JAVA_HOME
+/home/ppalaga/.sdkman/candidates/java/current
+$ mv $JAVA_HOME/lib/security/cacerts $JAVA_HOME/lib/security/cacerts-orig
+$ ln -s /etc/pki/ca-trust/extracted/java/cacerts $JAVA_HOME/lib/security/cacerts
+$ ls -l $JAVA_HOME/lib/security
+total 412
+...
+lrwxrwxrwx. 1 ppalaga ppalaga     40 Sep 13 11:24 cacerts -> /etc/pki/ca-trust/extracted/java/cacerts
+...
+----
+
+== Indy temporary repository
+
+Indy actually hosts two repositories:
+
+1. Permanent: https://indy.psi.redhat.com/api/content/maven/group/static
+2. Temporary: https://indy.psi.redhat.com/api/content/maven/hosted/temporary-builds
+
+In case you need artifacts that expired from the temporary repository, some of the following caching repos may help:
+
+* https://nexus.corp.redhat.com/repository/ads/
+* http://nexus.fuse-qe.eng.rdu2.redhat.com/repository/fuse-all/
+

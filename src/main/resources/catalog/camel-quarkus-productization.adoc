@@ -1,0 +1,264 @@
+= Camel Quarkus productization
+
+== Git repositories
+
+* Upstream: https://github.com/apache/camel-quarkus
+* Midstream: https://github.com/jboss-fuse/camel-quarkus
+* Product: https://gitlab.cee.redhat.com/pnc-workspace/jboss-fuse/camel-quarkus (since 2024-05-03)
+  the old https://code.engineering.redhat.com/gerrit/admin/repos/jboss-fuse/camel-quarkus[Gerrit repo] is read-only now
+
+Check xref:maven-repositories.adoc[Maven repositories] before you continue.
+
+== Midstream branch
+
+We always have a separate branch for every micro release:
+
+* `camel-quarkus-2.2.0-product`
+* `camel-quarkus-2.2.1-product`
+* etc.
+
+Those branches should be based on their corresponding upstream releases (although this wasn’t always the case with the first releases).
+
+To create a new branch based on the community tag, do something like
+
+[source,shell]
+----
+export UPSTREAM_TAG=2.7.2
+git fetch upstream $UPSTREAM_TAG
+git tag $UPSTREAM_TAG FETCH_HEAD
+git checkout -b camel-quarkus-$UPSTREAM_TAG-product $UPSTREAM_TAG
+----
+
+=== First commit
+
+After creating the new midstream branch a few initial commits are needed to prepare the source tree for the product.
+
+The first commit can be prepared using `cq-prod-maven-plugin:prod-init` mojo (see also xref:cq-tooling.adoc[CQ tooling]).
+It adds a few properties in the root `pom.xml`, adds some plugins and copies some files from the previous prod branch.
+
+Check the latest version of the mojo on the https://repo1.maven.org/maven2/org/l2x6/cq/cq-prod-maven-plugin/[Central] and adapt the script below if needed:
+
+[source,shell]
+----
+$ CQ_VERSION=3.1.1
+$ CAMEL_SAP_VERSION=4.0.0.redhat-00069
+$ PREVIOUS_PROD_BRANCH=camel-quarkus-2.7.1-product
+$ mvn org.l2x6.cq:cq-prod-maven-plugin:$CQ_VERSION:prod-init -Dcq.fromBranch=$PREVIOUS_PROD_BRANCH -Dcamel-sap.version=$CAMEL_SAP_VERSION -N -e
+----
+
+You may want to compare the resulting state with the previous prod branch.
+If something important is missing, you may want to add an edit step in the `prod-init` mojo.
+
+Otherwise, you can commit the changes:
+
+[source,shell]
+----
+$ git add -A
+$ git commit -m "Initialize $UPSTREAM_TAG product branch"
+----
+
+=== Adjust `camel-quarkus-product-source.json`
+
+Among other files, the `prod-init` mojo adds `product/src/main/resources/camel-quarkus-product-source.json` file.
+This file generally requires some tweaks, like
+
+* Adding extensions newly supported in the upcoming product release
+* Changing support levels
+* Adding new Quarkus CXF extensions to `additionalProductizedArtifacts`.
+  As of CEQ 3.8.0, all Quarkus CXF extensions are supported
+  and thus all `io.quarkiverse.cxf:*` extensions available in `product/src/main/generated/transitive-dependencies-all.txt`
+  should be listed in `additionalProductizedArtifacts`.
+* etc.
+
+Consult `product/README.adoc` for more details about `camel-quarkus-product-source.json`.
+
+=== Unlink unneeded modules (a.k.a. partial productization)
+
+When you are done with editing `camel-quarkus-product-source.json` you can go on to adapting the source tree to those changes.
+
+This is done using `cq-prod-maven-plugin:prod-excludes` mojo.
+It transforms the source tree in such a way that only Maven modules required by the CEQ extensions defined in `camel-quarkus-product-source.json` are kept linked in the tree.
+The rest of the modules is "unlinked" from the source tree by commenting their respective `<modules>` in `pom.xml` files.
+
+The way how to run and configure the mojo is described in `product/README.adoc` of the given midstream branch.
+
+[source,shell]
+----
+mvn org.l2x6.cq:cq-prod-maven-plugin:prod-excludes -N -e
+----
+
+=== Testing
+
+The `prod-excludes` mojo also packs integration test modules into two levels of groups under `https://github.com/jboss-fuse/camel-quarkus/tree/camel-quarkus-2.7.1-product/product[product]` directory:
+
+1. Based on whether the given test covers supported extension(s), and whether the covered extensions are supported in native mode. The kinds are as follows:
++
+* `product` - only supported extensions covered
+* `mixed` - covers a productized extension, but some unsupported extensions are required for the sake of testing
+* `native` - unsupported (in CEQ product) extensions that support native mode
+* `jvm-only` - unsupported (in CEQ product) extensions that do not support native mode
++
+2. Groups of tests to allow parallel execution on multiple Jenkins nodes.
+
+These groups are honored by the Jenkins job attached to the midstream repository.
+
+== PNC
+
+* Build configs: https://orch.psi.redhat.com/pnc-web/#/projects/788
+* PME scripts: https://gitlab.cee.redhat.com/fuse-prod/pme-manipulators/-/tree/main/src/main/groovy/com/redhat/fuse/groovy
+* CPaaS pipeline: https://jenkins-cpaas-camel-quarkus.apps.cpaas-poc.r6c9.p1.openshiftapps.com/job/main/job/camel-quarkus/job/camel-quarkus/job/camel-quarkus/
+
+=== PiG Build Config
+
+The build configs for CEQ are stored within a Git repository here:
+
+https://gitlab.cee.redhat.com/fuse-prod/build-configurations
+
+After a new product branch has been created, fork & clone the above project and create a directory for the new product release. The simplest approach is to
+copy and rename the directory from the last release.
+
+[source,shell]
+----
+cd camel-quarkus
+cp -r camel-quarkus-2.13.0 camel-quarkus-2.13.1
+----
+
+Next, customize `build-config.yaml` for the new product release. Placeholder variables declared at the top of the file will need modifying.
+
+`#!quarkusVersion` should be set to the productized Quarkus version that CEQ is aligned with.
+
+`#!quarkusCxfVersion` should be set to the base version of quarkus-cxf being productized for CEQ.
+
+`#!milestoneVersion` should be set to `CQ1` if this is the first build of the new CEQ product release. Otherwise the number can be incremented whenever a build is due to be handed over to QE.
+
+`#!ceqVersion` should be set to the base version of CEQ being productized.
+
+When complete, commit the changes and create a merge request.
+
+It's also a good idea to have write access to the https://gitlab.cee.redhat.com/fuse-prod/build-configurations[build-configurations] project.
+You can click the `Request Access` link on the GitLab https://gitlab.cee.redhat.com/fuse-prod/build-configurations[build-configurations] project page and someone will grant you access.
+
+=== CPaaS Pipeline Config
+
+The CPaaS Pipeline config for CEQ is stored within a Git repository here:
+
+https://gitlab.cee.redhat.com/cpaas-products/camel-quarkus/
+
+After creating a build config for the new CEQ product release, you can proceed to set up the CPaaS build pipeline.
+
+First click the `Request Access` link on the GitLab `cpaas-products/camel-quarkus` https://gitlab.cee.redhat.com/cpaas-products/camel-quarkus/[project page]. Once access is granted, create a new branch for the product release. The simplest
+approach is to copy the content from the previous release branch. You can do this from the GitLab UI via the https://gitlab.cee.redhat.com/cpaas-products/camel-quarkus/-/branches/new[New Branch] option.
+
+With the new branch created, you can fork and clone `cpaas-products/camel-quarkus` and start making customizations. Edit `product.yml` and update the release version.
+Also update the `pig-source` `root` configuration to point at the correct PiG configuration directory. `release.yml` can be left unmodified.
+
+Commit the changes and create a merge request.
+
+After the changes are merged, make sure your username is available in the list of `admins` in the CPaaS onboarding configuration of Camel Quarkus:
+https://gitlab.cee.redhat.com/cpaas-products/product-configs/-/blob/main/camel-quarkus/camel-quarkus.yml#L5
+
+Once you were added to admins,
+you can run the https://jenkins-cpaas-camel-quarkus.apps.cpaas-poc.r6c9.p1.openshiftapps.com/job/pipeline-seed/[Jenkins pipeline seed] job.
+The release version should eventually show up on the https://jenkins-cpaas-camel-quarkus.apps.cpaas-poc.r6c9.p1.openshiftapps.com/[Jenkins dashboard].
+
+Within each version folder there is a `build-pipeline` job from where you can trigger the CEQ pipeline (via `Build with Parameters`):
+
+image::cpaas-cq-build-pipeline-run-with-parameters.png[CPaaS Camel Quarkus job - Build with Parameters]
+
+Parameters:
+
+* `force` - if enabled, a new PNC build will be performed even if there are no changes in the associated PNC build configs;
+  otherwise the PNC build will be triggered only if there is no build yet for the given state of the build config.
+* `scratch` - if enabled, just a temporary build is triggered in PNC; otherwise a permanent build is triggered
+* `product_config_dir` - leave empty, because our `release.yaml` is in the root folder of our https://gitlab.cee.redhat.com/cpaas-products/camel-quarkus/[CPaaS config]
+* `msg_properties` - leave empty. FIXME: what is this actually for?
+
+When the whole pipeline runs successfully, the releases product will be available at:
+
+* https://download.eng.bos.redhat.com/rcm-guest/staging/integration/ (for permanent build)
+* https://download.eng.bos.redhat.com/rcm-guest/staging/integration/scratch (for temporary build)
+
+== Camel Quarkus "internal" zipped Maven repository
+
+The above CPaaS job outputs a xref:glossary.adoc#_mrrc_zip_zipped_maven_repo[Zipped Maven repository] suitable for running xref:glossary.adoc#_marete[Marete] tests.
+
+While this "internal" zipped Maven repository (as opposed to xref:productization/zipped-maven-repository.adoc[RHBQ Platform zipped Maven repository])
+is not a final deliverable for handing over to CEQ QE, it is still handy for the following use cases:
+
+* Early xref:productization/marete.adoc[Marete] testing (and fixing uncovered issues)
+* Comparing against RHBQ core zipped Maven repository
+* other similar verifications
+
+Note that the "internal" Maven repo is much faster to produce than the proper RHBQ Platform zipped Maven repository,
+which typically takes 2+ days when delivered by Quarkus Prod team.
+
+[#marete-internal]
+=== Running Marete against CEQ "internal" zipped Maven repository
+
+==== `camel-quarkus-marete-test` Jenkins job
+
+When a build is completed and the deliverables are available in the https://download.eng.bos.redhat.com/rcm-guest/staging/integration/[RCM staging area], a Jenkins job can be run to execute Marete tests against them.
+
+https://fuse-next-jenkins-csb-fuse-qe.apps.ocp-c1.prod.psi.redhat.com/view/Camel%20Quarkus/job/camel-quarkus/job/3.8/job/marete-cq/
+
+Click 'Build with Parameters` and provide the necessary links to each of the build deliverables in the https://download.eng.bos.redhat.com/rcm-guest/staging/integration/[RCM staging area].
+
+The build takes around 5 minutes to complete. When finished you can browse the build console log to review failures. Or look at the test result summary.
+
+==== Local Marete testing
+
+If desired, you can also run Marete locally. This script works as of CEQ 2.13.2.CQ6:
+
+[source,shell]
+----
+#!/bin/bash
+
+set -x
+set -e
+
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk
+
+mateteDir="${HOME}/orgs/cq-prod/marete"
+
+cd "${mareteDir}"
+
+MARETE_CONFIG_FILE=camel-quarkus-2-13
+
+VERSION_CAMEL_QUARKUS="2.13.2.redhat-00001"
+VERSION_QUARKUS="2.13.5.Final-redhat-00003"
+VERSION_CAMEL="3.18.3.redhat-00024"
+
+REPO_ZIP_URL=https://download.eng.bos.redhat.com/rcm-guest/staging/integration/camel-extensions-for-quarkus-2.13.2.CQ6/rhaf-camel-extensions-for-quarkus-2.13.2.CQ6-maven-repository.zip
+
+
+LOCAL_ZIP_PATH="${HOME}/zzz/pig/$(basename "$REPO_ZIP_URL")"
+mrrcPath="${LOCAL_ZIP_PATH%.*}"
+
+CAMEL_QUARKUS_PLATFORM_GAV="org.apache.camel.quarkus:camel-quarkus-bom:${VERSION_CAMEL_QUARKUS}"
+QUARKUS_PLATFORM_GAV="io.quarkus:quarkus-bom:${VERSION_QUARKUS}"
+
+
+if [ ! -f "$LOCAL_ZIP_PATH" ]; then
+  echo "Downloading $REPO_ZIP_URL"
+  curl "$REPO_ZIP_URL" -o "$LOCAL_ZIP_PATH"
+  rm -Rf $mrrcPath
+  unzip -qq $LOCAL_ZIP_PATH -d "$(dirname $mrrcPath)"
+else
+  echo "$REPO_ZIP_URL already downloaded"
+fi
+
+# These may take long
+testsFilter="-Dtest=!SourceZipTest,!LicensesTest"
+
+mvn -ntp -fae clean test \
+  "${testsFilter}" \
+  -Prod \
+  -Dmarete.unzipped.dir=${mrrcPath} \
+  "-Dmarete.unzipped.dirs=${mrrcPath},${mrrcPath}" \
+  -Dmarete.config=${MARETE_CONFIG_FILE} \
+  "-DCAMEL_QUARKUS_PLATFORM_GAV=${CAMEL_QUARKUS_PLATFORM_GAV}" \
+  "-DQUARKUS_PLATFORM_GAV=${QUARKUS_PLATFORM_GAV}" \
+  "-DVERSION_CAMEL_QUARKUS=${VERSION_CAMEL_QUARKUS}" \
+  "-DVERSION_QUARKUS=${VERSION_QUARKUS}" \
+  "-DVERSION_CAMEL=${VERSION_CAMEL}"
+----

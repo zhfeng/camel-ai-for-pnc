@@ -1,0 +1,86 @@
+= Marete
+
+Marete is an acronym for "Maven Repository Testsuite". It is hosted here: https://gitlab.cee.redhat.com/rhoar-qe/marete
+
+== What it does
+
+It performs structural and consistency checks of the xref:productization/zipped-maven-repository.adoc[zipped Maven repository], such as:
+
+* All BOM entries present?
+* No duplicate versions for a single artifact?
+* All jars have poms, checksums, sources, etc.?
+* `-redhat` versions match the `[\.\-]redhat-\d\d\d\d\d pattern`?
+* Banned artifacts like `javax.*` not present?
+
+== How to run Marete
+
+A configuration file is needed.
+You may choose one of the following depending on which zipped Maven repository you are testing:
+
+* If you test CEQ "internal" zipped repository, check xref:productization/camel-quarkus-productization.adoc#marete-internal[here]
+* If you test RHBQ Platform zipped repo, you may like to adapt this script:
++
+[source,shell]
+----
+#!/bin/bash
+
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk
+
+mareteDir="${HOME}/orgs/cq-prod/marete"
+
+cd "${mareteDir}"
+
+MARETE_CONFIG_FILE=quarkus-platform-prod
+
+VERSION_CAMEL_QUARKUS="2.7.1.redhat-00016"
+VERSION_QUARKUS="2.7.5.Final-redhat-00011"
+VERSION_QUARKUS="2.7.6.Final-redhat-00003"
+VERSION_CAMEL="3.14.2.redhat-00047"
+VERSION_PLATFORM="2.7.6.Final-redhat-00004"
+
+ZIPPED_REPO=${HOME}/zzz/pig/rh-quarkus-platform-2.7.6.ER2-maven-repository.zip
+mrrcPath="${HOME}/zzz/pig/rh-quarkus-platform-2.7.6.GA-maven-repository"
+
+CAMEL_QUARKUS_PLATFORM_GAV="com.redhat.quarkus.platform:quarkus-camel-bom:${VERSION_PLATFORM}"
+QUARKUS_PLATFORM_GAV="com.redhat.quarkus.platform:quarkus-bom:${VERSION_PLATFORM}"
+export QUARKUS_PLATFORM=true
+
+# These may take long
+testsFilter="-Dtest=!SourceZipTest,!LicensesTest"
+
+#  -Dmaven.surefire.debug="-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000" \
+
+rm -Rf $mrrcPath
+unzip -qq $ZIPPED_REPO -d "$(dirname $mrrcPath)"
+
+mvn -ntp -fae clean test "${testsFilter}" \
+  -Dmarete.unzipped.dir=${mrrcPath} \
+  "-Dmarete.unzipped.dirs=${mrrcPath},${mrrcPath}" \
+  -Dmarete.config=${MARETE_CONFIG_FILE} -Pprod \
+  -Dmarete.skip.repo.checks=true \
+  "-DCAMEL_QUARKUS_PLATFORM_GAV=${CAMEL_QUARKUS_PLATFORM_GAV}" \
+  "-DQUARKUS_PLATFORM_GAV=${QUARKUS_PLATFORM_GAV}" \
+  "-DVERSION_CAMEL_QUARKUS=${VERSION_CAMEL_QUARKUS}" \
+  "-DVERSION_QUARKUS=${VERSION_QUARKUS}" \
+  "-DVERSION_CAMEL=${VERSION_CAMEL}" \
+  "-DQUARKUS_PLATFORM=${QUARKUS_PLATFORM}" \
+  -Pcamel-quarkus
+----
+
+== Who should run Marete?
+
+Marete should be run by engineering before they hand over the given release to QE.
+Of course QE runs Marete too, but the general expectation is that the zipped Maven repository is structurally correct before handing it over to QE.
+
+== Where to fix which Marete failures
+
+Generally, Marete failures should be fixed as upstream as possible. Here is a list of possible places from upstream to downstream:
+
+. `org.apache.camel.quarkus:camel-quarkus-bom` or `io.quarkus:quarkus` BOM in both upstream and downstream branches
++
+Examples: https://github.com/apache/camel-quarkus/pull/3827/files, https://github.com/quarkusio/quarkus/pull/26069/files
++
+. CEQ product branch, esp. the `https://github.com/jboss-fuse/camel-quarkus/blob/camel-quarkus-2.7.1-product/product/src/main/resources/camel-quarkus-product-source.json[camel-quarkus-product-source.json]` file.
+. https://gitlab.cee.redhat.com/middleware/build-configurations/-/tree/master/Quarkus/2.7[Quarkus PME scripts] (POM manipulation extension)
+. RHBQ platform: add constraints, force -redhat versions via https://code.engineering.redhat.com/gerrit/c/quarkusio/quarkus-platform/+/414104/1/pom.xml#216[Platform BOM generator config].
+. https://gitlab.cee.redhat.com/middleware/build-configurations/-/blob/master/Quarkus/quarkus-platform/2.7/build-config.yaml[PiG configuration]

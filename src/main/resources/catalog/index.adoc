@@ -1,0 +1,31 @@
+= Product Processes
+
+The aim of this document is to pull together all the documentation for the Camel Extensions for Quarkus product processes. This should be the single source of truth and be regularly kept up to date.
+
+include::requirements.adoc[]
+
+include::versions-scheme.adoc[]
+
+include::jira.adoc[]
+
+include::documentation.adoc[]
+
+include::triage.adoc[]
+
+include::issue-selection-for-product-release.adoc[]
+
+include::supported-extensions.adoc[]
+
+include::certification-matrix.adoc[]
+
+include::deliverables.adoc[]
+
+include::interaction-rhbq-ceq.adoc[]
+
+include::cves.adoc[]
+
+include::smoke-tests.adoc[]
+
+include::patches-hot-fixes.adoc[]
+
+include::life-cycle.adoc[]

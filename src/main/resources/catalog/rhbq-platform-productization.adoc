@@ -1,0 +1,49 @@
+= RHBQ platform productization
+
+== Git repositories
+
+* Upstream: https://github.com/quarkusio/quarkus-platform
+* Midstream: RHBQ and RHBQ Platform have no midstream repository
+* Product: https://gitlab.cee.redhat.com/pnc-workspace/quarkusio/quarkus-platform (since 2024-05-03)
+  the old https://code.engineering.redhat.com/gerrit/admin/repos/quarkusio/[Gerrit repo] is read-only nowquarkus-platform
+
+== Preparations
+
+As a first step, please add an ssh public key to GitLab.
+Go to your GitLab Preferences / https://gitlab.cee.redhat.com/-/profile/keys[SSH Keys] and add your ssh public key including algorithm and mail address, for instance:
+
+[source,shell]
+---
+ssh-rsa xxx_public_key== user@host
+---
+
+Then create a fork using GitLab UI
+
+image::gitlab-fork.png[]
+
+Do not forget to change the name of the organization to your Kerberos username:
+
+image::gitlab-fork.png[]
+
+After that, clone the quarkus-platform downstream project and add your fork as a remote, like below:
+
+[source,shell]
+----
+$ git clone git@gitlab.cee.redhat.com:pnc-workspace/quarkusio/quarkus-platform.git -o downstream
+$ cd quarkus-platform
+$ git remote add ${USER} git@gitlab.cee.redhat.com:${USER}/quarkus-platform.git
+----
+
+== Productization
+
+You may want to read Paul Gallagher's https://docs.google.com/document/d/1INiaJ2j80aUSHGTTihbmXxMCHsQXur7tDZykyp8HZvY/edit[Quarkus platform integration build process] - this one is quite detailed but not always up to date.
+
+There is also https://gitlab.cee.redhat.com/quarkus-platform/process-documentation[quarkus-platform/process-documentation] on GitLab.
+As as of writing this, it is far from complete.
+
+TIP: Notify https://redhat.enterprise.slack.com/archives/C04J4CJ5Q0H[Quarkus Prod team] any time you do not find some information in their docs.
+
+To add/upgrade CEQ in RHBQ Platform, you need to create a GitLab merge request.
+
+Now it is possible to spin a platform build ourself:
+xref:productization/rhbq-platform-self-generation.adoc[RHBQ platform build self-generation]

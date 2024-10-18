@@ -1,0 +1,65 @@
+= Deliverables and handover to CEQ QE (Quality engineering)
+
+See https://docs.google.com/document/d/1Gh38vU46cW5dBq4sehOx1x2Mi0XN9v4QucVdpMwjxVQ/edit#heading=h.csem2rj9voip[CEQ QE docs].
+
+QE test pipelines are automatically triggered on successful handover of a CEQ milestone via a UMB message.
+
+== UMB (Unified Message Bus)
+
+* UMB overview: https://source.redhat.com/groups/public/enterprise-services-platform/it_platform_wiki/umb_appendix#umb-and-messaging-fundamentals
+* PNC builds topic: https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.pnc.builds
+
+== Curator
+
+* Curator UI: https://curator-fuse-productization.apps.ocp4.prod.psi.redhat.com/
+* Curator source code: https://gitlab.cee.redhat.com/fuse-prod/curator
+* Curator CLI source code: https://gitlab.cee.redhat.com/fuse-prod/curator-cli
+
+Curator tracks project deliverables and their status so that QE has visibility of the versions produced by PNC builds, together with release artifacts such as the license and MRRC zip files.
+
+Curator is populated via a Jenkins pipeline job, which is automatically triggered on receipt of a UMB message from the PNC builds topic (i.e whenever a successful CEQ build is completed in PNC).
+
+https://ci-jenkins-csb-fuse.apps.ocp-c1.prod.psi.redhat.com/job/Productization/job/deliverable-collector-pnc/
+
+The Jenkins job collects information about CEQ project versions and sends them to Curator. The build pipeline configuration can be found here:
+
+https://github.com/jboss-fuse/fuse-jenkins-pipelines/blob/main/productization/deliverable-collector-pnc/Jenkinsfile
+
+In the Curator UI, you can search for a specific project release milestone to view associated deliverables.
+For example, to find information about the build of `CEQ 2.13.2 CQ7`,
+you would filter by `camel-quarkus-2.13.2 CQ7` in the Curator https://curator-fuse-productization.apps.ocp4.prod.psi.redhat.com/[Summaries] page.
+
+Or you can jump directly to Release information page for the desired milestone by modifying the link https://curator-fuse-productization.apps.ocp4.prod.psi.redhat.com/view-progress.html?release=camel-quarkus-2.13.2&milestone=CQ7 .
+
+== Additional information required by Curator
+
+The complete list of deliverables before sending the UMB message should look like the following:
+
+image::curator-ui-before-sending-umb-message.png[Deliverables in Curator UI before sending the UMB message]
+
+By default, the `deliverable-collector-pnc` Jenkins pipeline job only populates some basic version information about the Camel and CEQ projects.
+
+In addition, it's required to provide the the associated Camel version and links to the Quarkus and Camel Quarkus deliverables.
+
+=== Camel version
+
+You may want to use the Curator CLI for that. E.g. to add Camel 3.18.3.redhat-00024 to CEQ 2.13.2 CQ7, you could to the following:
+
+[source,shell]
+----
+alias curator="docker run -e SERVER_URL=https://curator-fuse-productization.apps.ocp4.prod.psi.redhat.com docker-registry.upshift.redhat.com/fuse-containers/curator-cli:latest"
+
+CEQ_VERSION=2.13.2
+CEQ_MILESTONE=CQ7
+CAMEL_PROD_VERSION=3.18.3.redhat-00024
+CAMEL_VERSION="$(echo "$CAMEL_PROD_VERSION" | sed 's|.redhat-.*||')"
+
+curator curate --release-name camel-quarkus-$CEQ_VERSION --milestone-name $CEQ_MILESTONE --state-name productization-completed --artifact-name camel-$CAMEL_VERSION-branch --artifact-type jar --artifact-version $CAMEL_VERSION-branch --productization-name camel-$CAMEL_VERSION --productization-version $CAMEL_PROD_VERSION
+----
+
+=== Add the missing deliverables and handover
+
+There are two ways to do this:
+
+* xref:productization/deliverables/handover-with-curator-cli.adoc[Curator CLI] - faster feedback, scriptable, thus recommended
+* xref:productization/deliverables/handover-with-jenkins.adoc[Jenkins] - slower feedback, but you do not need to install Curator CLI locally

@@ -1,0 +1,2 @@
+== Patches and Hot-fixes
+Patches and hotfixes wil be delivered through a platform release.

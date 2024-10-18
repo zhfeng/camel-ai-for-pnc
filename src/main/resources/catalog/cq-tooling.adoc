@@ -1,0 +1,12 @@
+= CQ tooling, a.k.a. `org.l2x6.cq:cq-*maven-plugin`
+
+The https://github.com/l2x6/cq-maven-plugin repository hosts several Camel Quarkus community and product related Maven plugins.
+
+While moving the product related ones under the jboss-fuse organization, groupId and Java package would be worthwhile from the maintenance and team-member access point of view, it is not easy to do because:
+
+* The product related plugins have some dependencies on other community related modules in the same git repository
+* The community related modules cannot be moved to jboss-fuse because we want to keep them vendor neutral for Camel community
+
+This is not to say that splitting the product and community part is not possible.
+It most probably is possible, but some effort needs to be spent to do it.
+And also, after the split, there will be a bit more overhead due to releasing two Maven projects instead of one.

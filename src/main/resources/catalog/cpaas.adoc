@@ -1,0 +1,42 @@
+= CPaaS
+
+The goal of this document is to describe how a product team updates the CPaaS (Continuous Productization as a Service) product onboarding file to use a newer version of CPaaS.
+
+== Submit a Merge Request
+
+1. Fork the CPaaS Product Configuration repository (product-config) using the GitLab web console.
++
+NOTE: If you have an existing fork of the product configuration repository, make sure that the default branch is set to main. The CPaaS automation fails if the fork’s default branch is not set to main.
++
+2. Clone the forked repository from the above step
++
+[source,shell]
+----
+$ git clone git@gitlab.cee.redhat.com:<fork>/product-configs.git
+$ cd product-configs
+----
++
+3. Update the product configuration YAML file camel-quarkus/camel-quarkus.yml.
+4. Push the version upgrade change to your fork
++
+[source,shell]
+----
+$ git add camel-qarkus/camel-quarkus.yml
+$ git commit -m "Update CPaaS version of camel-quarkus"
+$ git push origin camel-quarkus-update
+----
++
+5. Submit a merge request (MR) from your fork to the CPaaS Product Configuration repository.
++
+IMPORTANT: The MR must target the main branch of the CPaaS production repository.
+
+== Provide CPaaS (camel-quarkus/camel) access to team member
+
+Follow the same above steps 1-3 :
+
+Add the user gitlab id to admin list here: https://gitlab.cee.redhat.com/cpaas-products/product-configs/-/blob/main/camel-quarkus/camel-quarkus.yml#L5
+
+Submit a merge request (MR) from your fork to the CPaaS Product Configuration repository.
+
+
+TIP: For any issue feel free to contact CPaaS Users gChat: https://chat.google.com/room/AAAA-umhJ10?cls=7

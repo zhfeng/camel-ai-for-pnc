@@ -1,0 +1,19 @@
+== New feature interaction between Quarkus / CEQ
+
+=== CEQ needs a library to be managed in io.quarkus:quakus-bom
+Create a Quarkus jira issue and follow up over one or more of the following channels:
+
+* Send a mail to quarkus-platform@redhat.com
+* Discuss on Prod Integration meeting (Monday)
+* Discuss on Quarkus Team Call (Thurs)
+
+Follow up with the final agreement on the opened jira
+
+=== CEQ needs to support a component which is not supported on Quarkus
+Create a Quarkus jira issue and follow up over one or more of the following channels:
+
+* Send a mail to quarkus-platform@redhat.com
+* Discuss on Prod Integration meeting (Monday)
+* Discuss on Quarkus Team Call (Thurs)
+
+Follow up with the final agreement on the opened jira

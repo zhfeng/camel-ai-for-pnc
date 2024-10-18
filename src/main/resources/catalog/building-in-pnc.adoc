@@ -1,0 +1,21 @@
+= Building in PNC
+
+* https://orch.psi.redhat.com/pnc-web[PNC]
+* https://docs.engineering.redhat.com/display/JP/User%27s+guide[PNC User Guide]
+
+== Build a new version of an artifact in PNC
+
+Building an artifact that was built in the past is easier that starting from scratch.
+Let's explain how to do that on the example of building Quarkiverse CXF 1.5.9 based on the older version 1.5.8:
+
+* Go to https://orch.psi.redhat.com/pnc-web/#/artifacts[PNC / Artifacts]
+* Search for an artifact belonging to the project, such as `quarkus-cxf-bom`
+* Find the newest version, which is `io.quarkiverse.cxf:quarkus-cxf-bom:pom:1.5.8.redhat-00001` in our case.
+* Click the link in the `Identifier` column which will lead you to the https://orch.psi.redhat.com/pnc-web/#/artifacts/9433762[Artifact page of quarkus-cxf-bom:pom:1.5.8.redhat-00001]
+* Click the https://orch.psi.redhat.com/pnc-web/#/projects/1267/build-configs/8993/builds/AVRCWUSXK3YAA[build link] on the Artifact page
+* On the Build page, go one level up in the breadcrumb bar - in our case the link is called https://orch.psi.redhat.com/pnc-web/#/projects/1267/build-configs/8993[quarkus-cxf-1.5.8]
+* On the quarkus-cxf-1.5.8 build config page, click the `Clone` button.
+* A copy with some random name will be created. Click the `Edit` button and change what's needed, most notably
+** Change the name to `quarkus-cxf-1.5.9`
+** Change the upstream tag to `1.5.9`
+* Once done with editing, click the `Build` button

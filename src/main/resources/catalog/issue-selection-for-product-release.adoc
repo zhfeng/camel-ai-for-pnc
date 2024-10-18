@@ -1,0 +1,3 @@
+==  Issue Selection for product release
+
+Team will work over priority looking at the current backlog for the next targeted GA (i.e. 2.Fireball-GA). Once all the backlog is clean, if time/capacity allow, the team will go through the 2.Next-GA bucket (which is ranked) and promote issues from 2.Next to next targeted GA.

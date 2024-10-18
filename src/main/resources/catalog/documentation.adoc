@@ -1,0 +1,78 @@
+== Documentation
+In order to reduce effort on the team it was decided that documentation will take a more _"upstream first"_ approach. +
+Basically, documentation is taken from upstream and is then elaborated a https://gitlab.cee.redhat.com/red-hat-integration-documentation/integration/-/blob/master/docs/upstream/camel-quarkus-extensions/fetch-upstream.sh[script] in order to produce the _Product Documentation_.
+
+Doing so, there are a few challenges to be aware and take care:
+
+=== Hiding community only specific content in product documentation
+If there is some content that is only supported in the community, e.g. Quartz clustering, then you can hide it by creating a new AsciiDoc partial in the extension runtime module at _src/main/doc/usage-advanced.adoc_. See example for Quartz https://github.com/apache/camel-quarkus/blob/main/extensions/quartz/runtime/src/main/doc/usage-advanced.adoc[here].
+
+The Maven plugin that generates the extension docs detects this, and wraps the content in some conditional logic, based on whether an AsciiDoc attribute is set. E.g: +
+
+[source,asciidoc]
+----
+== Usage
+\ifeval::[{doc-show-advanced-features} == true]
+[id="extensions-usage-advanced-clustering"]
+=== Clustering
+Clustering docs here...
+\endif::[]
+----
+
+The documentation team would either make sure the _doc-show-advanced-features_ attribute is missing, or set it to _false_, so that the content will not be rendered in the product docs.
+
+=== Hiding product only specific content in the community documentation
+If there's some content that exists only in the product documentation, e.g. a note that the _camel-salesforce-maven-plugin_ is unsupported, then it can be handled with some conditional logic and the AsciiDoc include macro.
+
+[source,asciidoc]
+----
+\ifeval::[{doc-show-extra-content} == true]
+\include::maven-plugin-unsupported.adoc[]
+\endif::[]
+----
+
+In the community _doc-show-extra-content_ is _false_ so the content within the include partial is not rendered. For the product, the expectation is that the docs team will have _doc-show-extra-content_ set to true and that they will supply the include partial .adoc file.
+
+Full list of new AsciiDoc attributes that I introduced https://github.com/apache/camel-quarkus/blob/main/docs/antora.yml#L44-L51[here]
+
+Our Maven tooling takes care of adding conditional logic for those in our extension docs. So you'll rarely need to use them directly.
+
+=== Latest downstream _Extensions Reference_ product documentation
+
+[NOTE]
+====
+You have to be logged in to the pantheon preview to be able to access the preview.
+====
+
+[IMPORTANT]
+====
+Always log in the first time you visit a documentation link after it has been updated.
+
+The previews are cached by Pantheon, and sometimes the latest version is not shown, if you are already logged in.
+
+Logging in should pull the latest version.
+====
+
+==== Version 4.0 and up
+
+Extenson reference:: https://dxp-docp-prod.apps.ext-waf.spoke.prod.us-west-2.aws.paas.redhat.com/documentation/en-us/red_hat_build_of_apache_camel/4.0/html-single/red_hat_build_of_apache_camel_for_quarkus_reference/index?lb_target=preview
+
+- Change <version> as needed (e. g. 4.0):
+
+=== Preview of downstream _Component Reference_ product documentation
+
+[NOTE]
+====
+The downstream component reference is normally published on avalon, but during development a preview, the latest version is on GitHub pages. 
+====
+
+Component reference:: https://rhaetor.github.io/rh-apache-camel-component-reference-4-x/components/4.0.x/
+
+
+=== Earlier downstream product documentation
+
+==== Version 2.13
+
+Extension reference:: https://dxp-docp-prod.apps.ext-waf.spoke.prod.us-west-2.aws.paas.redhat.com/documentation/en-us/red_hat_integration/2023.q2/html-single/camel_extensions_for_quarkus_reference/index?lb_target=preview
+
+Component reference:: https://rhaetor.github.io/rh-apache-camel-component-reference-3-x/components/3.18.x/

@@ -1,0 +1,179 @@
+== JIRA
+
+=== Workflow
+
+==== CEQ issues
+
+Workflow: https://issues.redhat.com/plugins/servlet/project-config/CEQ/workflow/?name=OJA-WF-S
+
+* New, Backlog -> to be triaged
+* To Do -> already triaged and ranked item ready to be worked
+* In Progress -> work has already started on one or more subtasks
+* Review -> only used by DOC team task issues, it indicates Doc Peer review
+* Closed -> no more work required
+
+Transition standard use case:
+
+* _New/Backlog -> To Do_ +
+Performed by GSS, Manager or PM during triage. +
+*Note:* Everyone who has created a *blocker* issue please set _priority_ and add _fixVersion_ to the current release you're working on. Automation will take care of transitioning the issue in To Do status
+* _To Do -> In Progress_ +
+The first one who start working please update the status on the Story/Bug and on the related sub-task you're working on. +
+*Note:* Please set also _Assignee_ (usually ENG or who works on the changes) and if required _QE Assignee_ as well
+* _In Progress_
+** _ENG_ +
+Eng is usually the first task which needs attention. All the Story/Bug which has this subtask open are shown in the list. +
+*Note:* ENGs have to provide documentation as part of the _"Development"_ subtask (It will replace SME Review). +
+If a PR is provided Doc team needs to be tagged for review +
+If anything downstream differ from upstream, ENG needs to share the changes in the _"Documentation"_ task and review the PR doc time will provide
+** _QE/PROD/DOC_ +
+After ENG complete the work and closed the subtasks the issue need QE/PROD/DOC attention.
+*** _QE_: review the test coverage and if there's enough capacity contribute to the coverage upstream, otherwise bounce it back to ENG again (reopen _"Development"_ sub-task).
+*** _DOC_: review PRs if any is open, otherwise provide Product specific PR and add ENG to review. Once PR is merged and items is available for validation the _"Documentation"_ task is closed.
+*** _PROD_: make sure issues are in the productized bits (platform build) and closes sub-tasks accordingly
+** _All subtasks and Doc Task closed (Validation)_ +
+If the issue is "In Progress" but all the subtasks and related Doc task have been closed it means the issue is ready for Validation. The intent is to validate the Story as whole (functionality + documentation), ideally at the same time. +
+If something fail validation a separate issue will be filed
+* _In Progress -> Closed_ (Validation done) +
+Usually performed by QE after Validation. After validating the issue please, unless the validation fails because of Critical or Blocker bugs please close the issue, otherwise let it open till issues are resolved.
+Link to the Story each related Bug.
+
+Everyone using the project is responsible for:
+
+* Setting appropriate issue type
+* Setting the appropriate priority
+* Setting the appropriate security level
+* Transitioning the issues in the right place
+* Leaving relevant status comments
+
+If you find something non-clear or not in the appropriate state, feel free to contact your Tech Lead or Manager.
+
+===== Security Level
+
+The default setting for CEQ is public. Automation will automatically switch created issues in "Red Hat Employee" unless there's a GSS Priority assigned to it in the first place. +
+Even default security level for comments is "Red Hat Employee".
+
+===== Issue type Guide
+
+|===
+|Issue type |Suggested Security Level |Scope
+
+|Epic
+|Red Hat Employee
+|Collection of issues representing specific requirements like: supported components, TP components, Internal builds, etc.
+For specific release it is just matter of filtering by the appropriate
+
+|Story
+|Red Hat Employee or Public
+|Internal or external features or enhancements to the product.
+If the story brings lot of changes, please create subtasks and label it appropriately
+
+|Task
+|Red Hat Employee
+|Tasks can be used for specific functional teams internal work. Please include the appropriate related label (see next section). +
+Be aware that Tasks are present in our Kanban Board but not on the Dashboard. That's because in Dashboard we would like to track whatever is delivered to customers, not internal tasks
+
+|Sub-task
+|Red Hat Employee
+|Sub-tasks are usually used to keep track of the functional teams progress over a story. The creation of this tasks is automated and tasks are appropriately labeled
+
+|Bugs
+|Red Hat Employee or Public
+|reported bugs
+|===
+
+===== Labels & JIRA Automations
+
+In order to not over-complicate the flow, there are several automations in place which create subtasks based on labels assigned to the story.
+
+Here is a list of labels related to automation:
+
+* EMPTY label or NONE of the below -> once the Story/Bug is created 4 subtasks are automatically created for Documentation, Productization, Engineering, Quality Engineering
+* NO_DEFAULT_SUBS -> if a Story/Bug get created with this label, no subtasks are created
+* team/eng -> if applied while creating a Story/Bug only a subtask directed to ENG team is created. Otherwise, the labels apply to subtasks or tasks related to ENG
+* team/prod -> if applied while creating a Story/Bug only a subtask directed to PROD team is created. Otherwise, the labels apply to subtasks or tasks related to PROD
+** off-prod -> if applied it means that the Story/Bug is handled outside of productization process. So the status will not be automatically updated.
+* team/doc -> if applied while creating a Story/Bug only a subtask directed to DOC team is created. Otherwise, the labels apply to subtasks or tasks related to DOC
+* team/qe -> if applied while creating a Story/Bug only a subtask directed to QE team is created. Otherwise, the labels apply to subtasks or tasks related to QE
+
+
+Other labels:
+
+* extension-analysis -> It applies to a Story and indicates a request for an extension
+* content-plan -> Used mainly by the doc team. It applies to a Stories, Sub-Tasks or Tasks to identify issues that will be covered into release
+* content-plan-potential -> Used mainly by the doc team. It applies to a Stories, Sub-Tasks or Tasks to identify issues that could be covered into release, but a final decision is pending
+* content-plan-extra -> Used mainly by the doc team. It applies to a Stories, Sub-Tasks or Tasks to identify issues that will be tentatively covered into release or published as post-GA
+
+Good practices:
+
+* label the camel-quarkus component while creating Stories or Bugs
+
+===== Notify a release note when required
+
+Please use the "Release Notes Type" field and set its value appropriately.
+For further info refer to https://docs.google.com/document/d/16pO3WWWHrfMetkHuJV9Bt9J1hkmCjg45aVXeyVK7D7g/edit#[Handling release notes document]
+
+===== Tracking progress
+
+* https://issues.redhat.com/secure/RapidBoard.jspa?rapidView=15075&quickFilter=108050[Triage board], used in triage phase
+* https://issues.redhat.com/secure/RapidBoard.jspa?rapidView=15407[Release Kanban board], used on tracking daily work
+* https://issues.redhat.com/secure/Dashboard.jspa?selectPageId=12345513[CQ Dashboard], used as an overview to the project. It shows priorities perspective as well
+
+====== Tips and tricks
+*How to check my issues in Kanban Board?*
+
+There's a quick filter option in the https://issues.redhat.com/secure/RapidBoard.jspa?rapidView=15407&quickFilter=98008[Release Kanban board] which is `Only My Issues`. Depending on what level of information needed, make sure to select the appropriate filters in conjunctions (i.e. `Subtask` or `!Subtask`)
+
+*How to get an overview about the issues I've been working and check in which phase those stands through Dashboard?*
+
+In the https://issues.redhat.com/secure/Dashboard.jspa?selectPageId=12345513[CEQ Dashboard], on top left gadget, `CEQ versions`, there's option to add a JQL query clicking on the `+JQL`.
+
+There you can add the following filter `assignee = currentUser()  or Tester = currentUser() or "QA Contact" = currentUser() or issueFunction in parentsOf("issuetype=Sub-task and assignee = currentUser()")`
+
+*How to get an overview about functional issues (ENG, PROD, DOC, QE) which are not worked yet (Backlog or To Do)?*
+In the https://issues.redhat.com/secure/Dashboard.jspa?selectPageId=12345513[CEQ Dashboard], on top left gadget, `CEQ versions`, there's option to add a JQL query clicking on the `+JQL`.
+
+There you can add a _similar_ filter: `issueFunction in parentsOf("issuetype=Sub-task and labels='team/doc' and status not in ('In Progress', 'Closed')")`
+
+Please make sure the appropriate labels is used.
+
+===== Priorities on picking tasks
+
+* Assignee make sure do not have more than a couple of issues in development already (let's focus on delivery and reducing switching context)
+* CVEs
+* Customer Cases
+* Internally reported bugs -> Blocker/Critical
+* All other issues
+
+==== Upstream issues
+
+Take care that your upstream commits reference the upstream issue.
+_Example:_ "Stop testing JavaScript DSL in native mode #2481"
+#2481 is the number of the upstream issue https://github.com/apache/camel-quarkus/issues/2481
+
+In order to not lose track of which community issues need engineering attention (those may be required for product issues), please assign https://github.com/apache/camel-quarkus/milestones[milestones] to them.
+
+Issues are fixed on the community master first. Afterwards they can be backported to community maintenance branches and to product branches.
+Note that when backporting to product branch 1.2.x you need to take care to backport also all newer branches, like 1.3.x, 1.4.x, 2.n.x, etc. (as long as they exist)
+
+===== Tracking progress
+
+Issues are visible on: https://github.com/apache/camel-quarkus/issues
+
+===== Linking issues between product and community
+
+Any references (links, mentions, ...) to Red Hat products in the community issue tracker and in community pull requests (PRs) has to be avoided. Community should stay vendor neutral.
+
+Any mapping/referencing between upstream and downstream may happen only on the product side.
+
+* The common practice is to add a community issue link (such as https://github.com/apache/camel-quarkus/issues/2492) to the description of the Jira issue, see e.g. https://issues.redhat.com/browse/ENTESB-16238
+* One downstream issue may contain references to multiple downstream issues.
+
+=== Release Version Numbering
+
+==== CEQ issues
+
+Given at the moment of planning we are not sure which will be the final targeted version (2.7,2.8,...), versioning will follow _Major.<Quarkus_Alias>.GA -> i.e. _"3.Hyperion.GA"_.
+In the final stage of the release, usually, a proper version is used (i.e. 3.8.0.GA).
+
+For RHBQ Platform respin we use specific version "_QP-Major.Minor.Micro.Respin_". i.e. _QP-3.2.10.GA_ or _QP-2.13.9.SP1_, etc.

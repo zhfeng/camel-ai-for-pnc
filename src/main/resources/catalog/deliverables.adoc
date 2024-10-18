@@ -1,0 +1,21 @@
+== Deliverables
+
+https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?product=rhboac&downloadType=distributions[RH Customer portal Software download page]
+
+List of deliverables:
+
+* RH quarkus-platform licenses
+* RH quarkus-platform sources
+
+Obsolete or not shipped deliverables:
+
+* RH quarkus-platform maven repositories +
+The RHBQ team is responsible to upload the platform MRRC to Red Hat Maven GA repo, but those are not pubblished on Customer Portal.
+Hence, those are tested but not present on Customer Portal and SPMM ticket
+* RHI camel-extensions-for-quarkus licenses +
+Internal licenses are a subset of the platform one, thus it was decided to not test and ship those anymore
+* RHI camel-extensions-for-quarkus maven repositories +
+Platform MRRC contains everything needed for customers to run CQ. Those repositories are tested in order to verify eventual problems but those are not uploaded to Red Hat Maven GA repo +
+nor on Customer Portal
+* RHI camel-extensions-for-quarkus sources +
+Sources zip is included in the Platform zip, hence it was decided to not ship those anymore

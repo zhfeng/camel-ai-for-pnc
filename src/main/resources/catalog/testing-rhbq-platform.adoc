@@ -1,0 +1,71 @@
+= Testing RHBQ Platform
+
+In the upstream, the Platform is tested by running the https://github.com/quarkusio/quarkus-platform/tree/main/generated-platform-project/quarkus-camel/integration-tests[generated test modules].
+These modules leverage the test jars published by Camel Quarkus.
+
+Doing the same is possible, but not sufficient in the product:
+
+* Generated test modules in RHBQ platform may rely on outdated community test jars (fixes in tests in the associated midstream branch are not visible in RHBQ Platform).
+* Some tests are not available on the Platform at all, because they are either temporarily broken or impossible to port.
+
+It is therefore much better to test RHBQ Platform by running the tests directly from the midstream branch or even better from a product tag.
+
+Here is how to do that (JVM mode):
+
+== Prerequisites
+
+[source,shell]
+----
+# make sure you have xmllint installed
+$ which xmllint
+/usr/bin/xmllint
+# if not
+$ sudo install xmllint
+
+# cd to your local copy of the product
+$ cd camel-quarkus
+
+# "downstream" should point at the PNC Workspace at GitLab
+$ git remote -v
+downstream  git@gitlab.cee.redhat.com:pnc-workspace/jboss-fuse/camel-quarkus.git (fetch)
+downstream  git@gitlab.cee.redhat.com:pnc-workspace/jboss-fuse/camel-quarkus.git (push)
+...
+----
+
+== Run tests from a product tag
+
+[source,shell]
+----
+# Against which Platform version you want to test.
+$ PLATFORM_VERSION="2.13.5.SP1-redhat-00001"
+
+# This assumes that the Platform BOMs are already available in the local Maven repository
+$ CEQ_VERSION="$(xmllint --format --xpath "/*[local-name() = 'project']/*[local-name() = 'dependencyManagement']/*[local-name() = 'dependencies']/*[local-name() = 'dependency'][*[local-name() = 'artifactId']/text() = 'camel-quarkus-direct']/*[local-name() = 'version']/text()" ~/.m2/repository/com/redhat/quarkus/platform/quarkus-camel-bom/$PLATFORM_VERSION/quarkus-camel-bom-$PLATFORM_VERSION.pom)"
+
+# If you want to test against Platform BOMs available in Indy,
+# you do something like the following:
+#$ CEQ_VERSION="$(curl -s \
+  https://indy.psi.redhat.com/browse/maven/group/static/com/redhat/quarkus/platform/quarkus-camel-bom/$PLATFORM_VERSION/quarkus-camel-bom-$PLATFORM_VERSION.pom \
+  | xmllint --format \
+    --xpath "/*[local-name() = 'project']/*[local-name() = 'dependencyManagement']/*[local-name() = 'dependencies']/*[local-name() = 'dependency'][*[local-name() = 'artifactId']/text() = 'camel-quarkus-direct']/*[local-name() = 'version']/text()" \
+  - )"
+
+$ PLF_GROUP_ID="com.redhat.quarkus.platform"
+
+$ git fetch downstream $CEQ_VERSION
+$ git checkout FETCH_HEAD
+$ git tag $CEQ_VERSION
+
+$ cd product
+
+$ mvn clean test -Pprod -Pmixed -fae \
+  -Dcq.prod-artifacts.skip \
+  -DnoVirtualDependencies \
+  -Dquarkus.platform.group-id=$PLF_GROUP_ID \
+  -Dquarkus.platform.artifact-id=quarkus-bom \
+  -Dquarkus.platform.version=$PLATFORM_VERSION \
+  -Dcamel-quarkus.platform.group-id=$PLF_GROUP_ID \
+  -Dcamel-quarkus.platform.artifact-id=quarkus-camel-bom \
+  -Dcamel-quarkus.platform.version=$PLATFORM_VERSION \
+  -Dcamel-quarkus.version=$CEQ_VERSION
+----

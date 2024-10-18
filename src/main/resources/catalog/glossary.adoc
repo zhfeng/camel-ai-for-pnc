@@ -1,0 +1,88 @@
+= Glossary
+
+== B
+
+=== Bacon
+
+A xref:#pnc[PNC] command line tool - see its
+
+* https://project-ncl.github.io/bacon/[Public documentation]
+* https://docs.engineering.redhat.com/display/JP/Bacon+-+PNC+cli+tool[Internal documentation]
+
+== D
+
+=== Downstream
+
+Product branch hosted on https://gitlab.cee.redhat.com/pnc-workspace[GitLab] (Gerrit in the past) derived from some xref:#_upstream[upstream] (community) or xref:#_midstream[midstream] branch.
+The branches in GitLab PNC Workspace are typically manipulated only by PNC.
+
+== I
+
+=== Indy
+
+A Maven repository serving artifacts build in PNC. Actually, Indy hosts two Maven repositories:
+
+. Permanent (more important): http://indy.psi.redhat.com/api/content/maven/group/static/
+. Temporary - hosts artifacts that will disappear after a couple of weeks: http://indy.psi.redhat.com/api/content/maven/hosted/temporary-builds/
+
+== M
+
+=== Marete
+
+"Maven Repository Testsuite" - see the xref:productization/marete.adoc[Marete] chapter.
+
+=== Midstream
+
+Product branch hosted on GitHub under jboss-fuse organization derived from some xref:#_upstream[upstream] (community) branch.
+
+=== MRRC
+
+"Maven Repository Red Hat dot com", a.k.a https://maven.repository.redhat.com/ga/ - the Maven repository through which Customers consume Red Hat productized artifacts.
+
+=== MRRC.zip, zipped Maven repo
+
+A zip file containing artifacts constituting some specific product release to be deployed to xref:#_mrrc[MRRC].
+
+== P
+
+=== PiG
+
+A subcommand of xref:#_bacon[bacon] - see https://project-ncl.github.io/bacon/guide/pig.html[PiG public documentation].
+
+=== PME
+
+"POM manipulation extension" - a Maven extension used by PNC to replace community artifacts for productized ones in source trees before building in PNC. See its https://release-engineering.github.io/pom-manipulation-ext/[public documentation].
+
+=== PNC
+
+"Project Newcastle" - a Red Hat internal service for productizing (rebuilding in a controlled environment) community artifacts - see its https://orch.psi.redhat.com/pnc-web/[web interface], see also xref:#_bacon[bacon] and xref:#_pig[PiG].
+
+=== PST
+
+Product Security Team
+
+== Q
+
+=== QA
+
+Quality Assurance - testing done by xref:#_qe[QE]
+
+=== QE
+
+Quality Engineering - a team responsible for testing the given product
+
+== R
+
+=== RHI
+
+Red Hat Integration - an umbrella product covering various integration offerings, such as CEQ, CSB, Camel K.
+
+=== RHBQ
+
+Red Hat Build of Quarkus - productized Quarkus (core) and Quarkus Platform.
+
+== U
+
+=== Upstream
+
+A community branch that is a base for some xref:#_downstream[downstream] (product) branch.

@@ -1,0 +1,119 @@
+= Handover with Jenkins
+
+== Add the missing deliverables
+
+NOTE: The deliverable should be available in https://download.eng.bos.redhat.com/rcm-guest/staging/integration/[RCM staging area].
+
+The `mrrc-collector` Jenkins job must be triggered manually:
+
+https://ci-jenkins-csb-fuse.apps.ocp-c1.prod.psi.redhat.com/job/Productization/job/deliverable-collector-mrrc/
+
+The job needs to be run twice. Once for sending details about Quarkus deliverables and a second time to send details about CEQ deliverables.
+
+Click 'Build with Parameters' and you'll be asked to provide some information. The required values are described below.
+
+=== Example Quarkus deliverables parameter values
+
+The links and values come from the https://download.eng.bos.redhat.com/rcm-guest/staging/integration/[RCM staging area]. In the following example we reference the Quarkus 2.13.4 ER4 build
+which is located https://download.eng.bos.redhat.com/rcm-guest/staging/quarkus/quarkus-2.13.4.ER4/[here].
+
+[cols="1,1"]
+|===
+|Parameter Name |Example Value
+
+| PROJECT_VERSION
+| camel-quarkus-2.13.1
+
+| MILESTONE
+| CQ2
+
+| MAVENREPO_ARTIFACT_NAME
+| rh-quarkus-2.13.4.ER4-maven-repository
+
+| OFFLINER_ARTIFACT_NAME
+| Leave empty as offliner is not used during Camel Extensions for Quarkus productization
+
+| SOURCE_ARTIFACT_NAME
+| rh-quarkus-2.13.4.ER4-src
+
+| LICENSE_ARTIFACT_NAME
+| rh-quarkus-2.13.4.ER4-license
+
+| ARTIFACT_VERSION
+| 2.13.4
+
+| MAVENREPO_ARTIFACT_LOCATION
+| http://download.eng.bos.redhat.com/rcm-guest/staging/quarkus/quarkus-2.13.4.ER4/rh-quarkus-2.13.4.ER4-maven-repository.zip
+
+| OFFLINER_ARTIFACT_LOCATION
+| Leave empty as offliner is not used during Camel Extensions for Quarkus productization
+
+| SOURCE_ARTIFACT_LOCATION
+| http://download.eng.bos.redhat.com/rcm-guest/staging/quarkus/quarkus-2.13.4.ER4/rh-quarkus-2.13.4.ER4-src.zip
+
+| LICENSE_ARTIFACT_LOCATION
+| http://download.eng.bos.redhat.com/rcm-guest/staging/quarkus/quarkus-2.13.4.ER4/rh-quarkus-2.13.4.ER4-license.zip
+|===
+
+=== Example CEQ deliverables parameter values
+
+The links and values come from the https://download.eng.bos.redhat.com/rcm-guest/staging/integration/[RCM staging area]. In the following example we reference the CEQ 2.13.1 CQ2 build
+which is located https://download.eng.bos.redhat.com/rcm-guest/staging/integration/camel-extensions-for-quarkus-2.13.1.CQ2/[here].
+
+[cols="1,1"]
+|===
+|Parameter Name |Example Value
+
+| PROJECT_VERSION
+| camel-quarkus-2.13.1
+
+| MILESTONE
+| CQ2
+
+| MAVENREPO_ARTIFACT_NAME
+| rhaf-camel-extensions-for-quarkus-2.13.1.CQ2-maven-repository
+
+| OFFLINER_ARTIFACT_NAME
+| Leave empty as offliner is not used during Camel Extensions for Quarkus productization
+
+| SOURCE_ARTIFACT_NAME
+| rhaf-camel-extensions-for-quarkus-2.13.1.CQ2-src
+
+| LICENSE_ARTIFACT_NAME
+| rhaf-camel-extensions-for-quarkus-2.13.1.CQ2-license
+
+| ARTIFACT_VERSION
+| 2.13.1
+
+| MAVENREPO_ARTIFACT_LOCATION
+| http://download.eng.bos.redhat.com/rcm-guest/staging/integration/camel-extensions-for-quarkus-2.13.1.CQ2/rhaf-camel-extensions-for-quarkus-2.13.1.CQ2-maven-repository.zip
+
+| OFFLINER_ARTIFACT_LOCATION
+| Leave empty as offliner is not used during Camel Extensions for Quarkus productization
+
+| SOURCE_ARTIFACT_LOCATION
+| http://download.eng.bos.redhat.com/rcm-guest/staging/integration/camel-extensions-for-quarkus-2.13.1.CQ2/rhaf-camel-extensions-for-quarkus-2.13.1.CQ2-src.zip
+
+| LICENSE_ARTIFACT_LOCATION
+| http://download.eng.bos.redhat.com/rcm-guest/staging/integration/camel-extensions-for-quarkus-2.13.1.CQ2/rhaf-camel-extensions-for-quarkus-2.13.1.CQ2-license.zip
+|===
+
+After the `mrrc-collector` pipeline builds are successful, you should see the information you provided displayed in Curator.
+
+== Send the UMB message
+
+To complete the handover process, a UMB message needs to be sent for QE so that their test pipelines will be automatically triggered.
+
+A Jenkins pipeline `fuse-handover-job` takes care of this:
+
+https://ci-jenkins-csb-fuse.apps.ocp-c1.prod.psi.redhat.com/job/Productization/job/fuse-handover-job
+
+Click 'Build with Parameters' and supply values `PROJECT_VERSION` (E.g camel-quarkus-2.13.1) and `PROJECT_BUILD_TYPE` (E.g the project milestone such as CQ2).
+
+The build will publish a JSON payload to the Fuse productization UMB topic where the QE tooling has a subscription.
+
+You may want to make sure that the message content is what you expect by finding the message via the Datagrepper UI and checking it visually:
+
+https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.jenkins.fuse.event.productization
+
+Inform QE that the message has been sent so that they can verify that their test pipelines were triggered.

@@ -1,0 +1,41 @@
+== Handling CVEs
+
+Refer to the xref:sustaining/fixing-cves.adoc[Fixing CVEs] guide for further information.
+
+=== Scanning practices
+
+==== Upstream (Community)
+ASF has its own rules to comply to security: https://www.apache.org/security/ and the process is described in https://www.apache.org/security/#vulnerability-handling.
+
+However, in order analyze CVE early in the cycle and build a more secure downstream product, an SBOM is generated weekly (on Monday) and scanned through dependencytree.
+Generated SBOMs are available in the upstream projects, in a specific sbom folder:
+
+* Camel: https://github.com/apache/camel/tree/main/camel-sbom
+* Camel Quarkus: https://github.com/apache/camel-quarkus/tree/main/camel-quarkus-sbom
+
+The aim is to fix Critical and High severity CVEs upstream. Internal instance is available at http://10.0.103.101:8080/projects. If you need access ask your manager.
+
+==== Midstream (Private internal development project)
+None.
+
+==== Downstream (Private productized project)
+Till CEQ 2.2.1 (included) a Source Clear scan was performed for https://ci-jenkins-csb-fuse.apps.ocp-c1.prod.psi.redhat.com/job/Sourceclear/job/sourceclear-buildrecordid/[every build]. Results were stored in https://sca.analysiscenter.veracode.com[veracode] (however subscription expired).
+
+Since CEQ 2.7 prod team switched to Snyk tool. Scans are still performed on https://jenkins-cpaas-camel-quarkus.apps.cpaas-poc.r6c9.p1.openshiftapps.com/job/2.7.1/job/build-pipeline/[each build] right after the PNC build is complete.
+Results are accessible through https://console.cloud.google.com/storage/browser/prodsec-scanchain/cpaas;tab=objects?pageState=(%22StorageObjectListTable%22:(%22f%22:%22%255B%257B_22k_22_3A_22_22_2C_22t_22_3A10_2C_22v_22_3A_22_5C_22camel-quarkus_5C_22_22%257D%255D%22,%22s%22:%5B(%22i%22:%22objectListDisplayFields%2FtimeCreated%22,%22s%22:%220%22),(%22i%22:%22displayName%22,%22s%22:%220%22)%5D))&prefix=&forceOnObjectsSortingFiltering=true[Google Cloud storage].
+
+Report will be generated through https://github.com/snyk/snyk-to-html#generate-the-html-report[snyk-to-html tool].
+
+=== An affected library gets removed or becomes unsupported
+*Example*: https://issues.redhat.com/browse/ENTESB-16870[ENTESB-16870]
+
+*Description:* in CEQ 2.2.1 a library (elasticsearch-rest) was released as TP. In 2.2.7 because of licensing issues it was decided to remove the library. In the meanwhile it was reported a CVE on that library.
+
+*Solution:* 2.2.1 product is anyway considered affected. Removing the library means the product will not be affected by the reported CVE anymore, hence the ENTESB has to be validated by QE (attests the library removal) and consequently closed as done. This grants also an RHSA and also removal from manifest afterwards
+
+=== A Major CVE is found over an unsupported extension/component
+*Example:* https://issues.redhat.com/browse/ENTESB-18908[ENTESB-18908]
+
+*Description:* a CVE is found over an unsupported component (community version)
+
+*Solution:* it does not end up in the product. It can be closed as "Won't Fix"

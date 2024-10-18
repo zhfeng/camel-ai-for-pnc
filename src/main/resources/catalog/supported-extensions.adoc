@@ -1,0 +1,16 @@
+== Supported Extensions
+Internal preview: https://docs.google.com/spreadsheets/d/1aNgEDmpSM9tMEOzBZjiLeQkKWNNN_t_d1b2KwKD0IS4/edit#gid=661736807[CQ Extensions Analysis]
+
+Official: https://access.redhat.com/documentation/en-us/red_hat_integration/2022.q3/html/camel_extensions_for_quarkus_reference/camel-quarkus-extensions-overview#camel-quarkus-supported-extensions
+
+^^ *please change RHI FY.Quarter accordingly* - i.e. 2022.q1, or choose the desired RHI version
+
+=== Quickstarts
+
+Camel Extensions for Quarkus team have been discussing about Quickstarts in order to set some basic rules:
+
+ * The example projects should demonstrate something of value. Ideally not basic 'hello world' type apps. So not all community examples will be productized
+ * The example projects must work in both JVM & native modes
+ * The example projects should (ideally & if it makes sense) be deployable to Kubernetes / OpenShift as for RHEL. This needs to be evaluated case by case and should be reviewed by ENG during validation
+ * The example projects must be baked with automated tests executable on RHEL
+ * The example projects should be documented with a README.me

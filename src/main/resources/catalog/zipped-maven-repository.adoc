@@ -1,0 +1,68 @@
+= Zipped Maven repository
+
+Zipped Maven repository, a.k.a. MRRC.zip is a zip file containing artifacts constituting some specific product release to be deployed to MRRC.
+MRRC stands for "Maven Repository Red Hat dot com", a.k.a https://maven.repository.redhat.com/ga/ - the Maven repository through which Customers consume Red Hat productized artifacts.
+
+MRRC.zips are stored on http://download.eng.brq.redhat.com/rcm-guest/staging/quarkus/
+
+CEQ's MRRC.zip is produced using `bacon pig` tool:
+
+* https://project-ncl.github.io/bacon/#installation-and-usage[Install Bacon]
+* https://project-ncl.github.io/bacon/guide/configuration.html[Bacon configuration]
+* https://docs.engineering.redhat.com/display/JP/How+To%3A+Install+PNC+CLI[RH internal bacon configuration details]
+* link:{attachmentsdir}/pnc-bacon-config.yaml[An example `bacon` configuration file] - store it to `~/.config/pnc-bacon/config.yaml` and replace `$USER` with your Kerberos username
+* https://project-ncl.github.io/bacon/guide/pig.html[PiG documentation]
+* https://project-ncl.github.io/bacon/guide/build-config.html[PiG configuration]
+
+== How to generate a MRRC.zip for CEQ
+
+=== Preparations
+
+[source,shell]
+----
+# Check your Bacon version
+$ bacon -V
+kill: usage: kill [-s sigspec | -n signum | -sigspec] pid | jobspec ... or kill -l [sigspec]
+Bacon version x.y.z ( SHA: deadbeef )
+
+# Update Bacon if necessary
+$ bacon update
+----
+
+=== Setup local caching proxy for Indy
+
+This may come in handy to speed up the builds in general through avoiding repeated downloads of artifacts.
+Check the https://docs.engineering.redhat.com/display/JP/Local+caching+proxy+for+Indy[local caching proxy for Indy] page of `bacon` internal guide.
+
+=== Checkout the PiG configuration
+
+[source,shell]
+----
+git checkout git@gitlab.cee.redhat.com:middleware/build-configurations.git -o upstream
+cd build-configurations
+git checkout master
+git reset --hard upstream/master
+export BUILD_CONFIGS="$(pwd)"
+----
+
+Make sure the configuration in the following two files is correct:
+
+* `Quarkus/quarkus-platform/2.7/build-config.yaml`
+* `Quarkus/quarkus-platform/2.7/extensionArtifactList.txt`
+
+=== Run PiG
+
+[source,shell]
+----
+# Log in to PNC
+# Make sure that your kerberos username is correct in the keycloak section of ~/.config/pnc-bacon/config.yaml
+$ bacon pnc whoami
+password:
+
+# Switch to a directory outside of any git worktree
+$ mkdir ~/mrrc-zips
+$ cd ~/mrrc-zips
+
+# Generate MRRC.zip
+$ bacon pig run $BUILD_CONFIGS/camel-quarkus/camel-quarkus-2.7.1 --skipBuilds --skipJavadoc --skipBranchCheck
+----

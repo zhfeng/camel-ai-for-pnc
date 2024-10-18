@@ -1,0 +1,25 @@
+== Smoke/Acceptance Test Process
+
+=== Marete
+MaReTe tests are not considered blocker for the handover and are not to be considered as acceptance tests from QE.
+
+Tests include:
+
+_[default]_
+
+* Licenses check
+* Productized artifacts check
+* Duplicate artifacts check
+
+MaReTe testsuite is run on several phases of the product life cycle:
+
+* Prod team runs MaReTe [default] after each build is handed over to QE.
+* QE team runs MaReTe tests [default + QE specific] for each build
+* QE team runs  MaReTe tests [default + QE specific] for Quarkus Platform
+
+==== Best Practices
+
+* Prod team reports bugs
+* *Duplicate or non productized artifacts* - would be good to report separate issues for each library
+* *Licensing* - if licensing issues are coming from upstream an upstream ticket will be opened
+* *Duplicate artifacts* - parents poms are not blocker for the build. Those can be whitelisted. A comment is required on the related jira about next plans (fix, won’t fix, etc)

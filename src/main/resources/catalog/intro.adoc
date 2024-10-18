@@ -1,0 +1,9 @@
+= Productization
+
+At Red Hat, Productization means a process of rebuilding of community artifacts in a controlled environment.
+
+Systems used:
+
+* xref:productization/building-in-pnc.adoc[PNC]
+* xref:productization/autobuild.adoc[Autobuild]
+* xref:productization/cpaas.adoc[CPaaS]

@@ -1,0 +1,9 @@
+== Issue Triaging
+Issues are usually triaged during Thursday Fuse Triage Call. Many factors drive the decision on the timeline to have a specific issue fixed, like:
+
+* Is a security sensitive issue?
+* Is it a customer issue?
+* What's the priority or the client timeline?
+* Is there a workaround or an alternative solution in place?
+
+If any internally reported issue has Critical or Blocker priority please move that directly to the backlog setting up fixVersion with the targeted GA, otherwise it must go to the "not prioritized" bucket: 2.Next-GA

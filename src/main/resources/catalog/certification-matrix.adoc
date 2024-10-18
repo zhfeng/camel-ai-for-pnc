@@ -1,0 +1,8 @@
+== Certification Matrix
+//TO-DO Internal preview:
+
+Official supported configurations
+https://access.redhat.com/articles/6507531
+
+Official component details
+https://access.redhat.com/articles/6971864

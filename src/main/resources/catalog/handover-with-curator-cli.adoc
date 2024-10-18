@@ -1,0 +1,73 @@
+= Handover with Curator CLI
+
+== Add the missing deliverables
+
+E.g. to add CEQ 2.13.2.CQ7 and Quarkus 2.13.5.CR1 deliverables, you can run the following script:
+
+[source,shell]
+----
+alias curator="docker run -e SERVER_URL=https://curator-fuse-productization.apps.ocp4.prod.psi.redhat.com docker-registry.upshift.redhat.com/fuse-containers/curator-cli:latest"
+
+# Check that what you set here is actually available on RCM guest:
+# curl -s https://download.eng.bos.redhat.com/rcm-guest/staging/integration/ | grep -o 'href="[^"]*"' | grep -o 'camel-extensions-for-quarkus-[^/"]*'
+CEQ_VERSION=2.13.2
+CEQ_MILESTONE=CQ7
+
+# Check that what you set here is actually available on RCM guest:
+# curl -s https://download.eng.bos.redhat.com/rcm-guest/staging/quarkus/ | grep -o 'href="[^"]*"' | grep -o 'quarkus-[^/"]*'
+QUARKUS_VERSION=2.13.5
+QUARKUS_MILESTONE=CR1
+
+curator curate --release-name camel-quarkus-$CEQ_VERSION --milestone-name $CEQ_MILESTONE --state-name productization-completed --artifact-name rh-quarkus-$QUARKUS_VERSION.$QUARKUS_MILESTONE-license --artifact-type jar --artifact-version $QUARKUS_VERSION --artifact-location https://download.eng.bos.redhat.com/rcm-guest/staging/quarkus/quarkus-$QUARKUS_VERSION.$QUARKUS_MILESTONE/rh-quarkus-$QUARKUS_VERSION.$QUARKUS_MILESTONE-license.zip
+
+curator curate --release-name camel-quarkus-$CEQ_VERSION --milestone-name $CEQ_MILESTONE --state-name productization-completed --artifact-name rh-quarkus-$QUARKUS_VERSION.$QUARKUS_MILESTONE-maven-repository --artifact-type jar --artifact-version $QUARKUS_VERSION --artifact-location https://download.eng.bos.redhat.com/rcm-guest/staging/quarkus/quarkus-$QUARKUS_VERSION.$QUARKUS_MILESTONE/rh-quarkus-$QUARKUS_VERSION.$QUARKUS_MILESTONE-maven-repository.zip
+
+curator curate --release-name camel-quarkus-$CEQ_VERSION --milestone-name $CEQ_MILESTONE --state-name productization-completed --artifact-name rh-quarkus-$QUARKUS_VERSION.$QUARKUS_MILESTONE-src --artifact-type jar --artifact-version $QUARKUS_VERSION --artifact-location https://download.eng.bos.redhat.com/rcm-guest/staging/quarkus/quarkus-$QUARKUS_VERSION.$QUARKUS_MILESTONE/rh-quarkus-$QUARKUS_VERSION.$QUARKUS_MILESTONE-src.zip
+
+curator curate --release-name camel-quarkus-$CEQ_VERSION --milestone-name $CEQ_MILESTONE --state-name productization-completed --artifact-name rhaf-camel-extensions-for-quarkus-$CEQ_VERSION.$CEQ_MILESTONE-license --artifact-type jar --artifact-version $QUARKUS_VERSION --artifact-location https://download.eng.bos.redhat.com/rcm-guest/staging/integration/camel-extensions-for-quarkus-$CEQ_VERSION.$CEQ_MILESTONE/rhaf-camel-extensions-for-quarkus-$CEQ_VERSION.$CEQ_MILESTONE-license.zip
+
+curator curate --release-name camel-quarkus-$CEQ_VERSION --milestone-name $CEQ_MILESTONE --state-name productization-completed --artifact-name rhaf-camel-extensions-for-quarkus-$CEQ_VERSION.$CEQ_MILESTONE-maven-repository --artifact-type jar --artifact-version $QUARKUS_VERSION --artifact-location https://download.eng.bos.redhat.com/rcm-guest/staging/integration/camel-extensions-for-quarkus-$CEQ_VERSION.$CEQ_MILESTONE/rhaf-camel-extensions-for-quarkus-$CEQ_VERSION.$CEQ_MILESTONE-maven-repository.zip
+
+curator curate --release-name camel-quarkus-$CEQ_VERSION --milestone-name $CEQ_MILESTONE --state-name productization-completed --artifact-name rhaf-camel-extensions-for-quarkus-$CEQ_VERSION.$CEQ_MILESTONE-src --artifact-type jar --artifact-version $QUARKUS_VERSION --artifact-location https://download.eng.bos.redhat.com/rcm-guest/staging/integration/camel-extensions-for-quarkus-$CEQ_VERSION.$CEQ_MILESTONE/rhaf-camel-extensions-for-quarkus-$CEQ_VERSION.$CEQ_MILESTONE-src.zip
+----
+
+== Update/remove broken records in Curator
+
+Sometimes it happens that you need to fix a field of an existing record or that you need to remove a record altogether,
+because you perhaps screwed the arguments in some of the above commands.
+
+== Update a record
+
+Only fields that are not a part of the primary keyare updatable.
+
+E.g. to change the `--state-name` of a record simply pass `curator curate` with the correct arguments.
+
+[source,shell]
+----
+curator curate --release-name camel-quarkus-$CEQ_VERSION --milestone-name $CEQ_MILESTONE --state-name productization-completed --artifact-name camel-quarkus-$CEQ_VERSION-product --artifact-type jar --artifact-version $CEQ_VERSION-product --productization-name camel-quarkus-$CEQ_VERSION-$CEQ_VERSION --productization-version $CEQ_PROD_VERSION
+----
+
+== Remove a record
+
+[source,shell]
+----
+curator update-deliverable --action=retire --milestone-name=$CEQ_MILESTONE --release-name=camel-quarkus-$CEQ_VERSION --artifact-name=camel-quarkus-$CEQ_VERSION-product --artifact-version=$CEQ_VERSION-product
+----
+
+== Send the UMB message
+
+The complete list of deliverables before sending the UMB message should look like the following:
+
+image::curator-ui-before-sending-umb-message.png[Deliverables in Curator UI before sending the UMB message]
+
+To complete the handover process, a UMB message needs to be sent for QE so that their test pipelines will be automatically triggered.
+
+This is how you can do that with Curator CLI:
+
+[source,shell]
+----
+CEQ_VERSION=2.13.2
+CEQ_MILESTONE=CQ7
+
+curator handover --commit --release-name camel-quarkus-$CEQ_VERSION --milestone-name $CEQ_MILESTONE --force
+----

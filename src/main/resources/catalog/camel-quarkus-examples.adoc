@@ -1,0 +1,54 @@
+= Camel Quarkus examples
+
+== Git repositories
+
+* Upstream: https://github.com/apache/camel-quarkus-examples
+* Product: https://github.com/jboss-fuse/camel-quarkus-examples
+
+== Tagging
+
+When a new Platform version becomes available, the platform version needs to get upgraded in product examples https://github.com/jboss-fuse/camel-quarkus-examples.
+Here is an example of a PR: https://github.com/jboss-fuse/camel-quarkus-examples/pull/15#pullrequestreview-862395988
+
+You can bump the versions as a one-liner from the command like:
+
+[source,shell]
+----
+for file in $(find . -name "*.yml" -o -name pom.xml); do sed -i 's/OLD-VERSION-HERE/NEW-VERSION-HERE/g' $file; done
+----
+
+When the PR is merged, tag the project with the new version. E.g as per previous examples here:
+
+https://github.com/jboss-fuse/camel-quarkus-examples/tags
+
+== Syncing with upstream
+
+It's possible to sync `jboss-fuse/camel-quarkus-examples` with an upstream branch from `apache/camel-quarkus-examples`.
+
+To do this, change into the directory where you cloned `jboss-fuse/camel-quarkus-examples`. Then run:
+
+NOTE: Replace the 4.11.0 version mentioned below with the https://mvnrepository.com/artifact/org.l2x6.cq/cq-prod-maven-plugin[latest released] `cq-prod-maven-plugin` version.
+
+[source,shell]
+----
+mvn org.l2x6.cq:cq-prod-maven-plugin:4.11.0:sync-examples-from-upstream -Dcq.quarkus.platform.version=<the new platform version> -Pprod
+----
+
+This will fetch the source of the upstream camel-quarkus-examples for the branch corresponding to the quarkus platform version you provided.
+E.g. if the platform version prefix is 3.8, then the 3.8.x branch will be used as the source to sync from.
+
+Alternatively, you can sync from a local directory by providing an additional parameter `-Dcq.syncFromDir=/path/to/dir`.
+
+The full set of supported parameters can be viewed by running:
+
+[source,shell]
+----
+mvn help:describe -Dplugin=org.l2x6.cq:cq-prod-maven-plugin:4.11.0 -Dgoal=sync-examples-from-upstream -Ddetail
+----
+
+Some useful non-mandatory options are:
+
+* `cq.ignoredDependencies` - Comma separated list of `groupId:artifactId` keys to ignore during dependency analysis
+* `cq.analyzeOnly` - Only performs dependency analysis on projects and does not sync them
+* `cq.projectExcludes` -  Comma separated list of directory names for example projects to exclude
+* `cq.projectInludes` -  Comma separated list of directory names for example projects to include

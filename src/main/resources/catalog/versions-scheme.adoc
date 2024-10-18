@@ -1,0 +1,5 @@
+== Versions scheme
+
+Product version is based on the underlying RHBQ version, so it follows same _version.major_.
+
+Usually product is aligned with the latest upstream Apache Camel LTS version compatible with Quarkus version.

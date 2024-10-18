@@ -1,0 +1,127 @@
+= Fixing CVEs
+
+For the most part, fixing CVEs is the same like xref:sustaining/fixing-issues.adoc[fixing any other issues].
+
+Especially, a given CVE need to get fixed in the product branch for which it was reported and all newer active downstream and upstream branches,
+so that customers always have a regression-free upgrade path.
+
+We mostly rely on reports from Product Security Team (PST).
+
+Upon receiving a CVE you may do one or more of the following:
+
+* Check the status of sibling CVE issues filed for other products.
+  Some of them may contain useful information.
+  You may also want to coordinate with those other teams.
+  If the CVE is also filed for Quarkus, it may mean they will fix it for us.
++
+image::sibling-cves.png[List sibling CVE issues]
++
+* Identify which specific `groupId:artifactId`(s) in which specific versions is reported as vulnerable.
+  This information is sometimes incomplete, so you may either ask ProdSec to add it or you can try to do without handling the whole group as vulnerable
+* Following the links in the report, figure out whether the issue is fixed and in which versions
+* It could be, that the artifact is brought by Quarkus core or some other Platform participant.
+  You may want to check whether the artifact is managed in `quarkus-bom` and/or whether any of CEQ supported extensions depends on it.
+
+== Check dependencies over the Quarkus Platform
+=== Option 1: use domino tool
+You can use the `domino tool` in order to investigate dependencies over Quarkus Platform.
+Download : https://github.com/quarkusio/quarkus-platform-bom-generator/releases[latest domino tool].
+
+Run over a specific Platform version:
+
+[source,shell]
+----
+$ java -jar domino.jar quarkus --version=2.13.9.Final-redhat-00004 --runtime-only --trace *jetty* --members=quarkus-camel-bom
+----
+
+It is also possible to test over an unreleased platform by overriding settings.xml and adding one or both of the following options `-s <path_to_settings.xml>` and `-P <repo_associated_profile>`
+
+*Note:* Automation is set to run CVE analysis through domino tool daily. More details can be found in the xref:automation/automation.adoc#_cve_analysis_automation[CVE Analysis Automation] section
+
+=== Option 2: use quarkus-platform-bom-maven-plugin
+You can use the `quarkus-platform-bom-maven-plugin` to check for occurrences of vulnerable artifacts in a given Quarkus Platform release.
+
+For example, to check occurrences of commons-text in Quarkus Platform `2.7.6.Final-redhat-00009` run
+
+[source,shell]
+----
+$ mvn io.quarkus:quarkus-platform-bom-maven-plugin:0.0.64:trace -Dkey=org.apache.commons:commons-text -Drelease=2.7.6.Final-redhat-00009
+----
+
+To restrict the output to only including supported extensions, add an additional argument `-DredhatSupported`.
+
+== Check dependencies over Camel Quarkus
+If a platform is not available yet for the current stream, you can use `cq-prod-maven-plugin` to find which Camel Quarkus artifacts depend on some given artifact:
+
+[source,shell]
+----
+$ cd camel-quarkus
+$ mvn org.l2x6.cq:cq-prod-maven-plugin:4.4.4:find-dependency -N -e '-Dcq.gavPattern=*:snakeyaml'
+...
+[WARN] Found org.apache.camel.quarkus:camel-quarkus-snakeyaml-deployment:2.16.0-SNAPSHOT:jar:
+        -> org.apache.camel.quarkus:camel-quarkus-snakeyaml:2.16.0-SNAPSHOT:jar:
+        -> org.apache.camel:camel-snakeyaml:3.19.0:jar:
+        -> org.yaml:snakeyaml:1.33:jar:
+...
+----
+
+Sometimes the vulnerable code is shaded (embedded in another artifact; using `maven-shade-plugin`).
+
+In such a case the above methods would not help. Instead, you can use the `resourcePattern` parameter of
+`cq-prod-maven-plugin:4.4.4:find-dependency` to search for classes matching some resource path pattern.
+
+E.g. to search for `FileBackedOutputStream` class (vulnerable as per  https://issues.redhat.com/browse/CEQ-7008[CEQ-7008])
+in any Java package in any transitive dependency, you can use the following command:
+
+[source,shell]
+----
+$ cd camel-quarkus
+$ mvn org.l2x6.cq:cq-prod-maven-plugin:4.4.4:find-dependency -N -e \
+    '-Dcq.gavPattern=*:*' \
+    '-Dcq.resourcePattern=**/FileBackedOutputStream.class'
+...
+        -> io.quarkus:quarkus-devservices-common:2.13.7.Final-redhat-00003:jar
+        -> org.testcontainers:testcontainers:1.17.3:jar
+           ^ org/testcontainers/shaded/com/google/common/io/FileBackedOutputStream.class
+...
+        -> org.apache.camel.quarkus:camel-quarkus-cassandraql:2.13.3.fuse-SNAPSHOT:jar
+        -> com.datastax.oss:java-driver-core:4.14.0:jar
+        -> com.datastax.oss:java-driver-shaded-guava:25.1-jre-graal-sub-1:jar
+           ^ com/datastax/oss/driver/shaded/guava/common/io/FileBackedOutputStream.class----
+...
+----
+
+== Conclusion
+* If none of our supported extensions depends on the given artifact, you may close the CVE as `Won't fix` explaining your decision properly.
+* Typically, you will want to fix the issue by upgrading to a non-vulnerable version.
+  You may want to perform the upgrade on one or more of the following locations:
+** RHBQ Platform in the `<dependencyManagement>` element of the Camel `<member>` or `<core>`.
+** `org.apache.camel.quarkus:camel-quarkus-bom`
+** Camel
+* The upgrade may require rebuilds of Camel, Camel Quarkus and RHBQ Platform
+
+Here is an authoritative https://issues.redhat.com/browse/ENTESB-19381?focusedCommentId=20568161&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-20568161[quote from Jon Anstey] as of 2022-07-08:
+
+[quote]
+____
+I've clarified this with Rodrigo recently but AFAIK it isn't written up in any doc from PST (yet). Here's a note I shared with other middleware managers, I hope it helps here as well:
+
+I want to share a hopefully helpful note about how CVEs are handled in Camel Extensions for Quarkus... in Camel Extensions for Quarkus we productize/ship/support only a subset of the upstream Camel Quarkus project. This has an impact on how CVEs are handled. In our BOM we have a mixture of productized and community modules. Rodrigo from PST confirmed before our first GA release last year that we only have to fix CVEs in modules we actually ship, not those modules only referenced in the BOM. I recently clarified with Rodrigo how this applies in the case of a major incident. It’s very similar actually.. Here’s a helpful note from Rodrigo:
+
+(1) Do we ship or make it available?
+
+(2) Or is it just a reference, a link to something else hosted elsewhere?
+
+If (1), fix and update what we make available. That will warrant for a tracker in your product.
+
+If (2), fix and update at the earliest convenience. We will not track or file trackers for you guys.
+
+So for major incident CVEs in community modules that we merely reference, we have much more time to fix it upstream, bring it into the next product release, etc.
+
+Just to be absolutely clear (because I was talking about major incidents ^^^), we DO NOT have to fix CVEs by the SLA in unsupported extensions that are merely unproductized references in our BOM.
+____
+
+== See also
+
+* https://docs.google.com/presentation/d/15sQlQkAxij-r9Xf7Iv6WLr3aE0s9zktk-7IiWK51j04/edit#slide=id.g8d8b9be634_0_1921[Product Security Survival Guide]
+* "Handling of Transitive Dependencies" section of https://docs.engineering.redhat.com/display/PRODSEC/Red+Hat+Build+of+Quarkus+Supported+Offering+Standard#RedHatBuildofQuarkusSupportedOfferingStandard-HandlingofTransitiveDependencies[Red Hat Build of Quarkus Supported Offering Standard] in PRODSEC Confluence.

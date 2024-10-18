@@ -1,0 +1,61 @@
+= Pre-GA tasks
+
+== Generate md5s and security checksums
+
+Once the CEQ build milestone accepted by QE, we need to generate security checksums file based on the staging maven repo zip,
+e.g. http://download.eng.bos.redhat.com/rcm-guest/staging/integration/camel-extensions-for-quarkus-2.13.3.CQ1/rhaf-camel-extensions-for-quarkus-2.13.3.CQ1-maven-repository.zip
+
+== Jenkins job to generate checksums
+
+https://ci-jenkins-csb-fuse.apps.ocp-c1.prod.psi.redhat.com/job/Productization/job/productization-fuse-rcm-pre-ga-task Click 'Build with Parameters' and supply values:
+
+* `PRODUCT_MILESTONE_VERSION` - provide the staging directory of the final build e.g. camel-extensions-for-quarkus-2.13.3.CQ1
+* `CAMELK_IMAGE_VERSION` - We can keep it empty as it is only required by camel-k build
+
+Once the job executed successfully it will generate the checksum file ( E.g. checksums-md5.json ) and the md5s for all the deliverables,
+e.g. http://download.eng.bos.redhat.com/rcm-guest/staging/integration/RHI-camel-extensions-for-quarkus-2.13.3.CQ1/
+
+NOTE: It is moving all deliverables to a directory which starts with RHI prefix (e.g. RHI-camel-extensions-for-quarkus-2.13.3.CQ1)
+      RHI prefix is mandatory for the candidate script.
+
+== Move deliverables from staging to candidate
+
+Once the staging directory is ready with all the deliverables and md5s we can move it to the candidate directory, for instance by running command below :
+
+[source,shell]
+----
+ssh spmm-util.hosts.prod.psi.bos.redhat.com stage-mw-release RHI-camel-extensions-for-quarkus-2.13.3.CQ1`
+----
+
+Once the command above has completed successfully, the whole staging directory should be visible in the https://download.eng.bos.redhat.com/devel/candidates/middleware/integration/[Candidate area]
+
+More details about spmm-util: https://spmm.pages.redhat.com/util-ansible/artifact-handoff.html#staging-a-snapshot-with-stage-mw-release
+
+== File SPMM ticket
+
+Once deliverables have been moved to the candidate area, we can file a SPMM ticket and provide md5sum for all deliverables, example from 2.13.2 build:
+http://download.eng.bos.redhat.com/devel/candidates/middleware/integration/RHI-camel-extensions-for-quarkus-2.13.2.CQ7/MD5SUM
+
+== Errata/Advisory creation
+=== Semi-automated steps
+Manually run https://ci-jenkins-csb-fuse.apps.ocp-c1.prod.psi.redhat.com/job/CamelQuarkus/job/automation/job/create-errata/ jenkins job. For more refer to xref:automation/automation.adoc#_create_errata[Create Errata Automation].
+
+Check whether everything looks ok and trigger the release pipeline job in cpaas (i.e. https://jenkins-cpaas-camel-quarkus.apps.cpaas-poc.r6c9.p1.openshiftapps.com/job/3.8.0/job/release-pipeline/)
+
+=== Manual steps when automation is not properly working
+Update the release pipeline advisories section for a release stream by updating release.yml file
+
+e.g for 2.7.1:
+
+https://gitlab.cee.redhat.com/cpaas-products/camel-quarkus/-/blob/2.7.1/release.yml?ref_type=heads#L55-85
+
+If creating a new errata, make sure there's no advisory_map.yml present in the git project
+
+e.g for 2.7.1:
+
+Remove https://gitlab.cee.redhat.com/cpaas-products/camel-quarkus/-/blob/2.7.1/release.yml?ref_type=heads#L55-85
+
+Update `fixed, reference, topic, description and synopsis` section of the advisory section.
+
+Once everything is updated, just trigger the CPaaS release pipeline for that release.
+E.g. for 2.7 https://jenkins-cpaas-camel-quarkus.apps.cpaas-poc.r6c9.p1.openshiftapps.com/job/2.7.1/job/release-pipeline/

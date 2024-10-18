@@ -1,0 +1,12 @@
+= CEQ Release coordinators guide
+
+== Preparations
+
+* Add your name as release manager for Camel Extension for Quarkus https://docs.google.com/spreadsheets/d/19WEv6C3rshXGKLAoodKa6AR55D02_mVh_IlHw7EjeMI/edit#gid=0
+* Join Quarkus Prod chat room and introduce yourself there as well https://mail.google.com/chat/u/0/#chat/space/AAAAOez5oSg
+* Join the following mailing lists (via https://groups.google.com/my-groups ):
+** quarkus-prod@redhat.com
+** quarkus-pm@redhat.com
+** quarkus-platform@redhat.com
+* Add internal xref:maven-repositories.adoc[Maven repositories] to your `settings.xml`
+* Get acquainted with xref:cq-tooling.adoc[CQ tooling]

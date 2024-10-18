@@ -1,0 +1,2 @@
+== Product Life Cycle
+Product life cycle can be found https://access.redhat.com/product-life-cycles/?product=Camel%20Extensions%20for%20Quarkus[here]

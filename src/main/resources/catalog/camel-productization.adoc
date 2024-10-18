@@ -1,0 +1,192 @@
+= Camel productization
+
+== Git repositories
+
+* Upstream: https://github.com/apache/camel
+* Midstream: https://github.com/jboss-fuse/camel
+* Product: https://gitlab.cee.redhat.com/pnc-workspace/jboss-fuse/camel (since 2024-05-03)
+  the old https://code.engineering.redhat.com/gerrit/admin/repos/jboss-fuse/camel[Gerrit repo] is read-only now
+
+== Partial productization
+
+`org.l2x6.cq:cq-camel-prod-maven-plugin:camel-prod-excludes` mojo (see xref:cq-tooling.adoc[CQ tooling]) is applied in the midstream repository.
+It transforms the source tree in such a way that only Maven modules required by the supported Camel components are kept linked in the tree.
+The rest of the modules is "unlinked" from the source tree by commenting their respective `<modules>` in `pom.xml` files.
+
+== Midstream branch
+
+We always have a separate branch for every micro release:
+
+* `camel-3.18.0-branch`
+* `camel-3.18.1-branch`
+* etc.
+
+Those branches should be based on their corresponding upstream releases.
+
+To create a new branch based on the community tag, do something like
+
+[source,shell]
+----
+export UPSTREAM_TAG=camel-3.18.1
+git pull upstream $UPSTREAM_TAG
+git tag $UPSTREAM_TAG FETCH_HEAD
+git checkout -b $UPSTREAM_TAG-branch $UPSTREAM_TAG
+----
+
+=== First commit
+
+After creating the new midstream branch a few initial commits are needed to prepare the source tree for the product.
+
+You can cherry-pick/adapt them from an older midstream branch (such as `camel-3.14.2-branch`):
+
+[source,shell]
+----
+$ git checkout camel-3.14.2-branch
+$ git reset --hard midstream/camel-3.14.2-branch
+$
+$ git log --oneline product
+36900052df1 Add missing modules required by CEQ 2.7.1
+9dac2e099ba Add artifacts required by CEQ 2.7.1
+fb2120d5c82 Use project.version for camel-yaml-dsl-maven-plugin (NCL-572)
+56bb25d33ca Add a dependencies non productized list
+153feead051 Add camel-test-spring-junit5 to the list of productized artifacts
+922767198d0 Add product README.adoc
+d9f8925588a Add camel-prod-excludes mojo
+$
+$ git log --oneline pom.xml
+36900052df1 Add missing modules required by CEQ 2.7.1
+1e7a9a656f7 Remove non-prod modules via org.l2x6.cq:cq-camel-prod-maven-plugin:camel-prod-excludes -N
+81dc55dd5bc Add camel-community.version 3.14.2
+d9f8925588a Add camel-prod-excludes mojo
+5cdbcf6524a Change versions to 3.14.2-SNAPSHOT
+2c755489d39 [maven-release-plugin] prepare release camel-3.14.2
+----
+
+Try to cherry-pick the Add camel-prod-excludes mojo commit
+
+[source,shell]
+----
+# Go back to the current branch
+$ git checkout -b $UPSTREAM_TAG-branch
+$ git cherry-pick d9f8925588a
+----
+
+After that, you may need to do one or more of the following:
+
+* Solve conflicts
+* Upgrade to the https://repo1.maven.org/maven2/org/l2x6/cq/cq-maven-plugin/[newest version] of `cq-maven-plugin`.
+* Copy/merge the `required-productized-camel-artifacts.txt` from the associated Camel Quarkus midstream branch,
+  such as https://github.com/jboss-fuse/camel-quarkus/blob/camel-quarkus-2.2.0-product/product/src/main/generated/required-productized-camel-artifacts.txt[2.2.0].
+** The file defines the set of Camel artifacts required by Camel Quarkus product branch
+** You need to put its content to `product/src/main/resources/required-productized-camel-artifacts.txt` of the Camel midstream branch
+** Additional artifacts may be required by Camel on SpringBoot
+
+Then you need to add `camel-community.version` property:
+
+[source,shell]
+----
+$ git cherry-pick 81dc55dd5bc
+----
+
+Then solve conflicts and change the community version to match `$UPSTREAM_TAG`.
+
+And finally remove the non-prod modules using `camel-prod-excludes` mojo:
+
+[source,shell]
+----
+$ mvn org.l2x6.cq:cq-camel-prod-maven-plugin:camel-prod-excludes -N -e
+----
+
+
+== Changes in `required-productized-camel-artifacts.txt`
+
+The following mojo should be run after every change in `required-productized-camel-artifacts.txt` and the generated changes should be committed:
+
+[source,shell]
+----
+$ mvn org.l2x6.cq:cq-camel-prod-maven-plugin:camel-prod-excludes -N -e
+$ git add -A
+$ git commit -m ...
+----
+
+== `camel-prod-excludes-check`
+
+This mojo is enabled by default and not only checks whether the source tree is in sync with `required-productized-camel-artifacts.txt`
+but also performs some tasks in the excluded modules so that the build is correct.
+
+To skip the whole mojo (not recommended - see above), pass `-Dcq.camel-prod-excludes.skip`.
+
+To avoid a check failure, but still perform the tasks in the excluded modules, pass `-Dcq.onCheckFailure=WARN` or `-Dcq.onCheckFailure=IGNORE`.
+
+== Known issues
+
+* Testing: broken for now, see https://issues.redhat.com/browse/CEQ-2371
+
+== PNC
+
+* Build configs: https://orch.psi.redhat.com/pnc-web/#/projects/28
+* PME scripts: https://gitlab.cee.redhat.com/fuse-prod/pme-manipulators/-/tree/main/src/main/groovy/com/redhat/fuse/groovy
+* CPaaS pipeline: https://jenkins-cpaas-camel.apps.cpaas-poc.r6c9.p1.openshiftapps.com/
+
+=== PiG Build Config
+
+The build configs for Camel are stored within a Git repository here:
+
+https://gitlab.cee.redhat.com/fuse-prod/build-configurations
+
+After a new product branch has been created, fork & clone the above project and create a directory for the new product release. The simplest approach is to
+copy and rename the directory from the last release.
+
+[source,shell]
+----
+cd camel
+cp -r camel-3.18.3 camel-3.18.4
+----
+
+Next, customize `build-config.yaml` for the new product release. First modify the variables at the top of the file.
+
+`#!productVersion` should equal the version of Camel to be built.
+
+`#!milestoneVersion` should be set to an appropriate milestone value.
+
+`#!cxfVersion` should be set to the version of CXF that Camel is aligned with.
+
+In the `builds` section of the config YAML, modify the Camel and CXF build config so that they point at the correct midstream branches.
+
+When complete, commit the changes and create a merge request. It's good practice to tag CSB release managers on the MR for approval, since the build config is shared between CEQ and CSB.
+
+It's also a good idea to have write access to the https://gitlab.cee.redhat.com/fuse-prod/build-configurations[build-configurations] project.
+You can click the `Request Access` link on the GitLab https://gitlab.cee.redhat.com/fuse-prod/build-configurations[build-configurations] project page and someone will grant you access.
+
+=== CPaaS Pipeline Config
+
+The CPaaS Pipeline config for Camel is stored within a Git repository here:
+
+https://gitlab.cee.redhat.com/cpaas-products/camel
+
+After creating a build config for the new Camel product release, you can proceed to set up the CPaaS build pipeline.
+
+First click the `Request Access` link on the GitLab `cpaas-products/camel` https://gitlab.cee.redhat.com/cpaas-products/camel/[project page]. Once access is granted, create a new branch for the product release. The simplest
+approach is to copy the content from the previous release branch. You can do this from the GitLab UI via the https://gitlab.cee.redhat.com/cpaas-products/camel/-/branches/new[New Branch] option.
+
+With the new branch created, you can fork and clone `cpaas-products/camel` and start making customizations. Edit `product.yml` and update the release version.
+Also update the `pig-source` `root` configuration to point at the correct PiG configuration directory. `release.yml` can be left unmodified.
+
+Commit the changes and create a merge request. After the changes are merged, run the https://jenkins-cpaas-camel.apps.cpaas-poc.r6c9.p1.openshiftapps.com/job/pipeline-seed[Jenkins pipeline seed] job.
+The release version should eventually show up on the https://jenkins-cpaas-camel.apps.cpaas-poc.r6c9.p1.openshiftapps.com/[Jenkins dashboard].
+
+Within each version folder there is a `build-pipeline` job from where you can trigger the Camel pipeline which will start the PNC build.
+
+=== Rebuild Camel
+
+If a new Camel milestone, such as ER2, is needed after one, such as ER1, has been build successfully in the past, the following needs to be done:
+
+* Upgrade the `#!milestoneVersion` in xref:#_pig_build_config[PiG build configuration].
+  We tend to use only `ER` milestones for Camel builds
++
+IMPORTANT: If you do not do this, you may see strange failures in Jenkins pipelines, such as
+           `Cancelling nested steps due to timeout in `build-pipeline` or
+           `No build is running for this group` in `camel/camel` pipeline.
++
+* Trigger the `build-pipeline` of the given Camel micro version on https://jenkins-cpaas-camel.apps.cpaas-poc.r6c9.p1.openshiftapps.com/[Jenkins]
+** To make sure the build is really triggered, set the `force` flag to true.

@@ -1,0 +1,60 @@
+= Fixing issues
+
+== Upstream first!
+
+This is the rule #1 of sustaining engineering.
+Product issues are fixed on the community `main` branch first.
+Afterwards they have to be backported to all relevant active upstream and downstream branches.
+
+The reason for this policy is, that customers must always have a regression-free upgrade path.
+
+=== Which branches are active?
+
+For product, those are branches within the support or maintenance window - i.e. branches from which customers are still getting new patch releases.
+
+For upstream, those are all LTS (Long Term Support) branches within their support window.
+
+=== Which branches are relevant for the given fix?
+
+It depends for which product release/build the given issue was reported.
+Again, customers must always have a regression-free upgrade path.
+Hence the fix must go to the branch where the issue was reported and all newer active branches.
+
+E.g. if the issue was reported for, CEQ 2.7.1, then it has to be fixed on
+
+* Any active `camel-quarkus-2.7.m-product` (where m > 1) branches as long as they exist
+* Any active `camel-quarkus-2.n.*-product` (where n > 7) branches as long as they exist
+* The `2.7.x` LTS branch in upstream
+* Any active `2.n.x` LTS branch in upstream if they exist
+* Upstream `main` branch
+
+== Issue Trackers
+
+=== Downstream
+
+* https://issues.redhat.com/secure/RapidBoard.jspa?rapidView=4936[Fuse Release Overview] - the most important Kanban board
+** https://issues.redhat.com/secure/RapidBoard.jspa?rapidView=4936&quickFilter=49222[Fuse Release Overview with CQ filter] - even more important for engineers working on Camel Quarkus
+** You may also want to use milestone filters like 2021-M3
++
+image::jira-kanban-board.png[]
+
+=== Upstream
+
+* https://github.com/apache/camel-quarkus/issues[https://github.com/apache/camel-quarkus/issues]
+
+== Linking issues between product and community
+
+* References (links, mentions, ...) to Red Hat products in the community issue tracker and in community pull requests (PRs) is generally unwanted. Community should stay vendor neutral.
+* Take care that your upstream commits reference the upstream issue. Example:
++
+[source]
+----
+Stop testing JavaScript DSL in native mode #2481
+----
++
+Where #2481 is the number of the upstream issue https://github.com/apache/camel-quarkus/issues/2481[https://github.com/apache/camel-quarkus/issues/2481]
+
+* Any mapping/referencing between upstream and downstream may happen only on the product side.
+** The common practice is to add a community issue link (such as https://github.com/apache/camel-quarkus/issues/2492 ) to the description of the Jira issue, see e.g. https://issues.redhat.com/browse/ENTESB-16238[ENTESB-16238]
+** One downstream issue may contain references to multiple downstream issues.
+* So that we do not lose track of which community issues need our (engineering) attention (because they are product issues), we assign https://github.com/apache/camel-quarkus/milestones[milestones] to them.

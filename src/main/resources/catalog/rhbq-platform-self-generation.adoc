@@ -1,0 +1,153 @@
+= RHBQ Platform build self Generation
+
+TIP: RHBQ team had a session about productizing a platform build: TIP: Notify https://redhat.enterprise.slack.com/archives/C04J4CJ5Q0H
+
+== Create a PR
+Usually Camel Quarkus team has to send 2 PRs, one to update the quarkus platform and another one to update the quarkus platform build config.
+
+=== Update the Quarkus Platform
+
+First check out a new branch for the CEQ platform modifications:
+
+[source,shell]
+----
+# checkout the Quarkus main release branch
+# e.g. for CEQ 2.13.1 CQ3 that is based on Quarkus 2.13.4:
+$ git checkout -b 2.13.4.Final-CEQ-CQ3-redhat downstream/2.13.4.Final-redhat
+----
+
+* Change the version of the top `pom.xml` to something like `2.13.1.SP1-redhat-00001` if this is an SP release. Note that PME is intentionally off for RHBQ Platform, so you have to change the project version for every build manually. If in doubt about the version to use, ask in the `quarkus-prod` Google chat room.
+* Increment the `-redhat-0000n` suffix if the given one was built already
+* Upgrade the following properties:
+** `camel-quarkus.version` - The productized CEQ release version
+** `camel-quarkus-test-list.version` - Should be set to the community version of Camel Quarkus
+** `camel-quarkus-support-overrides.version` - Set to `${camel-quarkus.version}`
+** `quarkus-cxf.version` - Set to the latest community version since Plain CXF is supported
+* Edit the config of the `quarkus-platform-bom-maven-plugin`.
+** Ensure the `Camel` platform member is enabled by setting <hidden>false</hidden>
+** Add any required build from source exclusions to the `<dependenciesToBuild>` configuration. There is more detail about this below.
+** Ensure `quarkus-cxf.hide` and `camel-quarkus.hide` is false
+* Run the generator
++
+[source,shell]
+----
+# This may take tens of minutes depending on your internet speed
+# and maven repos used. Having Central and Indy as first two repos
+# in your settings.xml may bring the fastest builds
+# You may want to add -Denforcer.skip if enforcer
+# complains about forbidden repos.
+$ mvn -Dsync -Denforcer.skip -Pprod
+----
++
+* Review the changes in generated BOMs
+* If the changes make sense, install the BOMs
++
+[source,shell]
+----
+$ mvn clean install -DskipTests -Denforcer.skip -Pprod
+----
++
+* Then xref:productization/testing-rhbq-platform.adoc[test RHBQ Platform] locally at least in JVM mode.
+* If all is fine, you can create the GitLab merge request (you may want to read https://docs.google.com/document/d/1RYh0jB_sF8aUr3_xszIkrcqIFgfEmwvC2RZOI-5rwgo/edit[Harsh's guide] form more tips & tricks).
+Note that the `HEAD:refs/for` reference is the target branch of the PR (I.e usually the one you originally branched from).
++
+[source,shell]
+----
+$ git commit -m "2.13.1.SP1-redhat-00001 upgrade to CEQ 2.13.1.CQ3 alias 2.13.1-redhat-00007"
+# Push the current branch to your fork git@gitlab.cee.redhat.com:${USER}/quarkus-platform.git
+# aliased ${USER}
+$ git push ${USER} "$(git rev-parse --abbrev-ref HEAD)"
+...
+remote: To create a merge request for 2.13.4.Final-CEQ-CQ3-redhat, visit:
+remote:   https://gitlab.cee.redhat.com/ppalaga/quarkus-platform/-/merge_requests/new?merge_request%5Bsource_branch%5D=2.13.4.Final-CEQ-CQ3-redhat
+----
+
+* Got to the URL returned by the remote and create a merge request against the appropriate base branch
+* Let Quarkus Prod team know on Quarkus Prod gchat that you created the MR. The Quarkus platform PNC build is owned by the Quarkus team and will be triggered automatically when the PR is opened (or when any further commits are pushed).
++
+Ask in Quarkus Prod gchat for a link to the PNC build in case you need to view build logs in the event of any failures.
+* When coming to a new RHBQ prod branch: port the Camel related changes from the previous branch (assuming the changes are compatible with the new RHBQ release).
+
+=== Update the Quarkus Platform build-config
+Together with the Platform PR, usually quarkus platform build-config needs to be updated as well.
+
+The PR should be raised against https://gitlab.cee.redhat.com/middleware/build-configurations/-/blob/master/Quarkus/quarkus-platform/<release_version>/build-config.yaml?ref_type=heads. i.e. https://gitlab.cee.redhat.com/middleware/build-configurations/-/blob/master/Quarkus/quarkus-platform/3.8/build-config.yaml?ref_type=heads
+
+https://gitlab.cee.redhat.com/middleware/build-configurations/-/commit/ebbef55dbb0a4dc254e24b8bcdff48a3344e43fa[Here] is an example of PR raised
+
+TIP: Temporary build and permanent build use a milestone naming convention in build-config.yaml. +
+Temporary one must use  SPx.ERy, while permanent build must use SPx.CRy
+
+
+== Build from source report
+
+It is possible to generate a report that will list all the projects to be built from source.
+Camel must first be enabled as a platform participant by modifying the `quarkus-platform-bom-maven-plugin` and setting `<hidden>false</hidden>` for Camel.
+
+Then run:
+
+[source,shell]
+----
+mvn -PdepsToBuild
+----
+
+The generated report can be found at `target/dependencies-to-build/quarkus-camel-bom-deps-to-build.txt` and can be used as an input for automatically productizing the listed projects.
+
+=== Excluding dependencies from the report
+
+Not every dependency can or should be built from source. Items can be excluded from the report via the `dependenciesToBuild` configuration of the `quarkus-platform-bom-maven-plugin`.
+
+The following sections outline different ways that dependencies can be excluded.
+Whether you use `excludeGroupIds`, `excludeKeys` or `excludeKeys`, it's a good idea to group CEQ exclusions together under an XML comment like `<!-- CEQ exclusions -\->`.
+
+It's also good practice to comment each exclusion with a brief description of why it is required.
+If there's a Jira issue associated with a particular exclusion, then mention the link in the comment.
+
+==== Exclude dependency by group id
+
+[source,xml]
+----
+<excludeGroupIds>
+    <!-- Exclude all org.junit dependencies -->
+    <groupId>org.junit</groupId>
+</excludeGroupIds>
+----
+
+==== Exclude dependency by groupId:artifactId key
+
+[source,xml]
+----
+<excludeKeys>
+    <!-- Exclude a POM -->
+    <key>com.azure:azure-sdk-parent:pom</key>
+    <!-- Exclude a JAR -->
+    <key>com.azure:azure-core</key>
+    <!-- Wildcard exclusion on POMs -->
+    <key>com.google.cloud:*:*:pom</key>
+</excludeKeys>
+----
+
+==== Exclude dependency with a specific version
+
+[source,xml]
+----
+<excludeArtifacts>
+    <!-- Exclude a specific version of a POM -->
+    <artifact>com.fasterxml.jackson:jackson-bom::pom:2.12.3</artifact>
+    <!-- Exclude a specific version of a JAR -->
+    <artifact>org.graalvm.sdk:graal-sdk:22.2.0</artifact>
+</excludeArtifacts>
+----
+
+== Quarkus Platform Maven Repo Generation
+Run the following job https://master-jenkins-csb-quarkus-prod.apps.ocp-c1.prod.psi.redhat.com/view/Quarkus-Platform/job/Quarkus-Platform-Maven-Repo-Generation/
+
+TIP: In case of failures contact the RHBQ productization team
+
+After generation would be good to run some check (i.e. https://master-jenkins-csb-quarkus-prod.apps.ocp-c1.prod.psi.redhat.com/view/Testing/)
+
+== Trigger platfrom UMB
+Trigger the job https://master-jenkins-csb-quarkus-prod.apps.ocp-c1.prod.psi.redhat.com/job/platform/job/umb-message-trigger-job/
+
+== Upload Deliverables to candidate repo
+Once QE signs off the deliverables for shipment, run https://master-jenkins-csb-quarkus-prod.apps.ocp-c1.prod.psi.redhat.com/job/upload%20to%20candidates/

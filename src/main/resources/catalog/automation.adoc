@@ -1,0 +1,54 @@
+== Automation in the productization Process
+image::automation_in_productization.svg[]
+
+=== Automation of midstream branch setup for third-party dependencies
+==== Atlassian Fugue
+If a new version of Atlassian Fugue needs to be productized, there is a script to prepare a new branch on the jboss-fuse project fork.
+
+Refer to the project README for details.
+
+https://github.com/jboss-fuse/atlassian-fugue
+
+=== Automation before handover
+==== Transition "team/prod" JIRA issues to "Closed" when a build is ready
+Jenkins job was created to "Close" jira issues labeled with "team/prod" and in "Backlog" or "To Do" status. Job is triggered once the internal or the platform UMB message is available.
+
+reference:
+
+* https://ci-jenkins-csb-fuse.apps.ocp-c1.prod.psi.redhat.com/job/JiraAutomation/job/jira-automation-job/[Jenkins job]
+* https://gitlab.cee.redhat.com/fuse-infrastructure/cci-jd-declaration-fuse/-/blob/master/jobs/JiraAutomation/jira-automation.groovy?ref_type=heads[Job definition]
+* https://github.com/jboss-fuse/fuse-jenkins-pipelines/blob/main/jira/Jenkinsfile[Pipeline implementation]
+
+==== Announce build via mail when a build is ready
+Jenkins job was created in order to announce build via email. The email will contain information related to most important libraries version and will be triggered when the internal UMB is available.
+
+reference:
+* https://ci-jenkins-csb-fuse.apps.ocp-c1.prod.psi.redhat.com/job/CamelQuarkus/job/send-recap-mail-for-build/[Jenkins job]
+* https://gitlab.cee.redhat.com/fuse-infrastructure/cci-jd-declaration-fuse/-/blob/master/jobs/CamelQuarkus/automation/send-recap-mail-after-umb.groovy?ref_type=heads[Job definition]
+* https://github.com/jboss-fuse/fuse-jenkins-pipelines/blob/main/camel-quarkus-automation/announce-build-with-email/Jenkinsfile[Pipeline implementation]
+
+=== Automation GA tasks
+==== Create Errata
+Jenkins job was created in order to semi-automate process for creating an Errata.
+The created job will file and merge project related information to https://gitlab.cee.redhat.com/cpaas-products/camel-quarkus. The correct branch is taken from a jenkins job input parameter as "product version".
+
+reference:
+
+* https://ci-jenkins-csb-fuse.apps.ocp-c1.prod.psi.redhat.com/job/CamelQuarkus/job/automation/job/create-errata/[Jenkins job]
+* https://gitlab.cee.redhat.com/fuse-infrastructure/cci-jd-declaration-fuse/-/blob/master/jobs/CamelQuarkus/automation/create-errata.groovy?ref_type=heads[Job definition]
+* https://github.com/fmongiar/fuse-jenkins-pipelines/blob/errata_creation/camel-quarkus-automation/create-errata/Jenkinsfile[Pipeline implementation]
+
+Once the content is merged please follow steps in xref:productization/pre-ga-tasks.adoc#_errataadvisory_creation[Errata/Advisory creation]
+
+== Automation in the development phase
+=== CVE analysis automation
+Jenkins job was created in order to daily check over CVE jira issues and if not yet done, run CVE analysis and leave a comment. +
+This job is intended as a helper tool and not a tool that you can blindly trust. +
+Analysis is based on the label `ps-component:<library>`. Engineers should first verify the mentioned library is correct and confirm the provided analysis.
+If the `ps-component` library is not accurate, please run a proper analysis.
+
+reference:
+
+* https://ci-jenkins-csb-fuse.apps.ocp-c1.prod.psi.redhat.com/job/CamelQuarkus/job/automation/job/cve-analysis/[Jenkins job]
+* https://gitlab.cee.redhat.com/fuse-infrastructure/cci-jd-declaration-fuse/-/blob/master/jobs/CamelQuarkus/automation/cve-analysis.groovy?ref_type=heads[Job definition]
+* https://github.com/fmongiar/fuse-jenkins-pipelines/blob/errata_creation/camel-quarkus-automation/cve-analysis/Jenkinsfile[Pipeline implementation]
